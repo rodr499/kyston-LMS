@@ -1,26 +1,255 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@plugin "daisyui";
 
+@plugin "daisyui/theme" {
+  name: "kyston";
+  default: true;
+  color-scheme: light;
+  --color-primary: oklch(40% 0.2 280);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(65% 0.18 210);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(72% 0.15 290);
+  --color-accent-content: oklch(20% 0.05 280);
+  --color-neutral: oklch(18% 0.04 280);
+  --color-neutral-content: oklch(88% 0.02 280);
+  --color-base-100: oklch(98.5% 0.005 280);
+  --color-base-200: oklch(96% 0.01 280);
+  --color-base-300: oklch(90% 0.02 280);
+  --color-base-content: oklch(18% 0.04 280);
+  --color-info: oklch(72% 0.15 220);
+  --color-success: oklch(72% 0.18 160);
+  --color-warning: oklch(80% 0.18 80);
+  --color-error: oklch(68% 0.18 20);
+}
+
+@theme {
+  --font-heading: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Design tokens - mobile-first */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-heading: #111827;
+  --color-body: #374151;
+  --color-muted: #6b7280;
+  --color-placeholder: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-focus: oklch(40% 0.2 280);
+  --bg-page: #f8f9fa;
+  --bg-card: #ffffff;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --radius-input: 8px;
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --transition-default: all 0.2s ease;
+  --touch-min: 44px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--color-body);
+  background-color: var(--bg-page);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', sans-serif;
+  color: var(--color-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+/* Mobile: minimum font sizes to prevent zoom */
+input, textarea, select {
+  font-size: 16px;
+}
+
+/* Global input, textarea, select styling - mobile-first */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="search"],
+input[type="tel"],
+input[type="datetime-local"],
+textarea,
+select {
+  width: 100%;
+  min-height: var(--touch-min);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-border);
+  transition: var(--transition-default);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px oklch(40% 0.2 280 / 0.15);
+}
+
+/* Interactive elements transitions */
+button,
+a,
+input,
+textarea,
+select,
+.card,
+.btn,
+.badge,
+[role="tab"] {
+  transition: var(--transition-default);
+}
+
+/* Touch targets - remove tap highlight on mobile */
+button, a, input, select, textarea, label[for] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth focus outlines */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+
+/* ========== RESPONSIVE TABLES - Mobile-first card pattern ========== */
+/* Base: mobile - each row becomes a card */
+.table-responsive-card {
+  width: 100%;
+}
+
+.table-responsive-card table,
+.table-responsive-card thead,
+.table-responsive-card tbody,
+.table-responsive-card th,
+.table-responsive-card td,
+.table-responsive-card tr {
+  display: block;
+}
+
+.table-responsive-card thead tr {
+  display: none;
+}
+
+.table-responsive-card tr {
+  margin-bottom: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+}
+
+.table-responsive-card td {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.table-responsive-card td:last-child {
+  border-bottom: none;
+}
+
+.table-responsive-card td::before {
+  content: attr(data-label);
+  font-weight: 600;
+  color: var(--color-heading);
+  flex-shrink: 0;
+  margin-right: 16px;
+  font-size: 0.875rem;
+}
+
+/* md and up: restore table layout */
+@media (min-width: 768px) {
+  .table-responsive-card table {
+    display: table;
+  }
+
+  .table-responsive-card thead {
+    display: table-header-group;
+  }
+
+  .table-responsive-card tbody {
+    display: table-row-group;
+  }
+
+  .table-responsive-card tr {
+    display: table-row;
+    margin-bottom: 0;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    border: none;
+  }
+
+  .table-responsive-card th,
+  .table-responsive-card td {
+    display: table-cell;
+    padding: 0.75rem 1rem;
+    border-bottom: none;
+  }
+
+  .table-responsive-card td::before {
+    display: none;
+  }
+}
+
+/* Scrollable table container for when card pattern isn't used */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.table-scroll-wrap table {
+  width: 100%;
+  min-width: 600px;
+}
+
+/* Navigation progress bar (route change feedback) */
+@keyframes navigation-progress {
+  from {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.navigation-progress-bar {
+  transform-origin: left;
+  animation: navigation-progress 0.5s ease-out forwards;
 }
