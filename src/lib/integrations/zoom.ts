@@ -24,7 +24,8 @@ export async function createMeeting(
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || "Zoom API error");
+    console.error("[zoom] createMeeting failed:", err);
+    throw new Error("Failed to create Zoom meeting");
   }
   const data = (await res.json()) as { join_url: string; id: string };
   return { meetingUrl: data.join_url, meetingId: String(data.id) };

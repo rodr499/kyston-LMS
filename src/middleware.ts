@@ -99,7 +99,7 @@ async function runSupabaseAuth(
     headers: requestHeaders,
     method: request.method,
   });
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: nextRequest,
   });
 

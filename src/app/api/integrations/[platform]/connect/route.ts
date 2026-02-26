@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { createHmac } from "crypto";
 
 const PLATFORMS = ["zoom", "teams", "google_meet"] as const;
 
@@ -51,9 +52,12 @@ export async function GET(
   }
   const sharedBase = getSharedCallbackBase();
   const redirectUri = `${sharedBase}/api/integrations/${platform}/callback`;
-  const state = Buffer.from(
+  const stateSecret = process.env.OAUTH_STATE_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const statePayload = Buffer.from(
     JSON.stringify({ churchId: tenant.churchId, subdomain: tenant.subdomain })
   ).toString("base64url");
+  const hmac = createHmac("sha256", stateSecret).update(statePayload).digest("hex");
+  const state = `${statePayload}.${hmac}`;
   const integrationsUrl = `${origin}/admin/integrations`;
 
   if (platform === "zoom") {

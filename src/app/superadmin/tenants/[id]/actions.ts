@@ -73,15 +73,20 @@ export async function saveManualOverride(churchId: string, formData: FormData) {
     where: eq(churchPlanConfig.churchId, churchId),
   });
 
+  const parseLimit = (key: string, fallback: number): number => {
+    const n = parseInt(String(formData.get(key) ?? fallback), 10);
+    return Number.isNaN(n) ? fallback : Math.max(0, n);
+  };
+
   const overrideValues = isManualOverride
     ? {
-        overrideMaxFacilitators: parseInt(String(formData.get("overrideMaxFacilitators") ?? "3"), 10),
-        overrideMaxStudents: parseInt(String(formData.get("overrideMaxStudents") ?? "20"), 10),
-        overrideMaxPrograms: parseInt(String(formData.get("overrideMaxPrograms") ?? "2"), 10),
-        overrideMaxCourses: parseInt(String(formData.get("overrideMaxCourses") ?? "5"), 10),
-        overrideMaxStorageMb: parseInt(String(formData.get("overrideMaxStorageMb") ?? "500"), 10),
+        overrideMaxFacilitators: parseLimit("overrideMaxFacilitators", 3),
+        overrideMaxStudents: parseLimit("overrideMaxStudents", 20),
+        overrideMaxPrograms: parseLimit("overrideMaxPrograms", 2),
+        overrideMaxCourses: parseLimit("overrideMaxCourses", 5),
+        overrideMaxStorageMb: parseLimit("overrideMaxStorageMb", 500),
       }
-    : {} as Record<string, never>;
+    : ({} as Record<string, never>);
 
   if (existing) {
     await db

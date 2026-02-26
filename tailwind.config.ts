@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import daisyui from "daisyui";
 
 type DaisyUIConfig = {
   daisyui?: {
@@ -36,7 +37,7 @@ const config: Config & DaisyUIConfig = {
       },
     },
   },
-  plugins: [require("daisyui")],
+  plugins: [daisyui],
   daisyui: {
     themes: [
       {

@@ -30,7 +30,7 @@ type Props = {
   userId: string | null;
 };
 
-export default async function LearningHub({ church, programs, enrolledClassIds, userId }: Props) {
+export default function LearningHub({ church, programs, enrolledClassIds, userId }: Props) {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       {/* Navbar */}
