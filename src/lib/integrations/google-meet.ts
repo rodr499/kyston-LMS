@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 /**
  * Google Meet via Calendar API.
  * Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET. Use /api/integrations/google-meet/connect for OAuth.
@@ -21,7 +23,7 @@ export async function createMeeting(
       end: { dateTime: endTime.toISOString(), timeZone: "UTC" },
       conferenceData: {
         createRequest: {
-          requestId: `kyston-${Date.now()}`,
+          requestId: `kyston-${randomUUID()}`,
           conferenceSolutionKey: { type: "hangoutsMeet" },
         },
       },
@@ -29,7 +31,8 @@ export async function createMeeting(
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || "Calendar API error");
+    console.error("[google-meet] createMeeting failed:", err);
+    throw new Error("Failed to create Google Meet meeting");
   }
   const data = (await res.json()) as { hangoutLink?: string };
   return { meetingUrl: data.hangoutLink ?? "" };

@@ -17,7 +17,7 @@ export default async function SuperAdminLayout({
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true, fullName: true },
   });
-  if (row?.role !== "super_admin" || row.churchId != null) redirect("/");
+  if (row?.role !== "super_admin" || row.churchId !== null) redirect("/");
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <AdminSidebar

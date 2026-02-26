@@ -1,9 +1,9 @@
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { users, classes, enrollments, activities, activityCompletions } from "@/lib/db/schema";
-import { and, eq, asc } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { classes, enrollments, activities, activityCompletions } from "@/lib/db/schema";
+import { and, eq, asc, inArray } from "drizzle-orm";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Video, UserCheck, ListTodo, CheckCircle, Circle } from "lucide-react";
 
@@ -13,10 +13,10 @@ export default async function LearnClassPage({
   params: Promise<{ id: string }>;
 }) {
   const tenant = await getTenant();
-  if (!tenant) return null;
+  if (!tenant) redirect("/login");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
   const { id } = await params;
   const enrollment = await db.query.enrollments.findFirst({
     where: and(
@@ -25,6 +25,7 @@ export default async function LearnClassPage({
       eq(enrollments.churchId, tenant.churchId),
       eq(enrollments.status, "enrolled")
     ),
+    columns: { id: true },
   });
   if (!enrollment) notFound();
   const cls = await db.query.classes.findFirst({
@@ -40,19 +41,26 @@ export default async function LearnClassPage({
     orderBy: [asc(activities.orderIndex)],
     columns: { id: true, title: true, type: true, orderIndex: true },
   });
-  const completionStatus = await Promise.all(
-    activityList.map(async (a) => {
-      const c = await db.query.activityCompletions.findFirst({
-        where: and(
-          eq(activityCompletions.activityId, a.id),
-          eq(activityCompletions.studentId, user.id)
-        ),
-        columns: { status: true },
-      });
-      return { activityId: a.id, status: c?.status ?? "not_started" };
-    })
-  );
-  const statusMap = new Map(completionStatus.map((s) => [s.activityId, s.status]));
+
+  // Batch-fetch all completions in a single query instead of one per activity
+  const activityIds = activityList.map((a) => a.id);
+  const completions = activityIds.length
+    ? await db
+        .select({ activityId: activityCompletions.activityId, status: activityCompletions.status })
+        .from(activityCompletions)
+        .where(
+          and(
+            inArray(activityCompletions.activityId, activityIds),
+            eq(activityCompletions.studentId, user.id)
+          )
+        )
+    : [];
+
+  const statusMap = new Map(completions.map((c) => [c.activityId, c.status]));
+  const completionStatus = activityList.map((a) => ({
+    activityId: a.id,
+    status: statusMap.get(a.id) ?? "not_started",
+  }));
   const completedCount = completionStatus.filter((s) => s.status === "completed").length;
   const progressPct = activityList.length ? Math.round((completedCount / activityList.length) * 100) : 0;
 

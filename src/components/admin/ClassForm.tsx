@@ -83,10 +83,15 @@ export default function ClassForm({
 
   useEffect(() => {
     if (initial?.meetingPlatform && initial.meetingPlatform !== "none") {
-      checkMeetingEligibilityAction(churchId, initial.meetingPlatform).then((result) => {
-        setMeetingMode(result.mode);
-        setMeetingMessage(result.reason ?? null);
-      });
+      checkMeetingEligibilityAction(churchId, initial.meetingPlatform)
+        .then((result) => {
+          setMeetingMode(result.mode);
+          setMeetingMessage(result.reason ?? null);
+        })
+        .catch((err) => {
+          console.error("[ClassForm] eligibility check failed:", err);
+          setMeetingMode("none");
+        });
     }
   }, [churchId, initial?.meetingPlatform]);
 

@@ -26,10 +26,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
-  const cleanSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "");
-  if (!cleanSubdomain) {
-    console.warn("[register-church] 400: Invalid subdomain.");
-    return NextResponse.json({ error: "Invalid subdomain." }, { status: 400 });
+  const RESERVED_SUBDOMAINS = new Set([
+    "admin", "api", "www", "superadmin", "mail", "ftp", "smtp", "pop",
+    "app", "dashboard", "login", "register", "billing", "support", "help",
+    "status", "static", "assets", "cdn", "dev", "staging", "test",
+  ]);
+
+  const cleanSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "");
+  if (!cleanSubdomain || cleanSubdomain.length < 3 || cleanSubdomain.length > 63) {
+    console.warn("[register-church] 400: Invalid subdomain length.");
+    return NextResponse.json({ error: "Subdomain must be between 3 and 63 characters." }, { status: 400 });
+  }
+  if (RESERVED_SUBDOMAINS.has(cleanSubdomain)) {
+    console.warn("[register-church] 400: Reserved subdomain:", cleanSubdomain);
+    return NextResponse.json({ error: "That subdomain is reserved." }, { status: 400 });
   }
 
   const existing = await db.query.churches.findFirst({

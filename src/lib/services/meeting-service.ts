@@ -115,7 +115,7 @@ export async function createClassMeeting(params: CreateClassMeetingParams): Prom
     );
 
   try {
-    let result = await doCreate(accessToken);
+    const result = await doCreate(accessToken);
     await db
       .update(classes)
       .set({

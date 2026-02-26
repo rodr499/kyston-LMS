@@ -18,7 +18,7 @@ function parseFormLimits(formData: FormData): {
     const v = formData.get(k);
     if (v === null || v === "") return def;
     const n = parseInt(String(v), 10);
-    return isNaN(n) ? def : n;
+    return Number.isNaN(n) ? def : Math.max(0, n);
   };
   return {
     maxFacilitators: get("maxFacilitators", 3),
@@ -32,7 +32,7 @@ function parseFormLimits(formData: FormData): {
 function parsePrice(v: FormDataEntryValue | null): string | null {
   if (v === null || v === "") return null;
   const n = parseFloat(String(v));
-  return isNaN(n) ? null : n.toFixed(2);
+  return Number.isNaN(n) || n < 0 ? null : n.toFixed(2);
 }
 
 export async function createPlan(formData: FormData) {

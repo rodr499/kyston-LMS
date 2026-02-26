@@ -4,10 +4,11 @@ import { programs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { Plus, BookOpen, Pencil, GraduationCap } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function AdminProgramsPage() {
   const tenant = await getTenant();
-  if (!tenant) return null;
+  if (!tenant) redirect("/login");
   const list = await db.query.programs.findMany({
     where: eq(programs.churchId, tenant.churchId),
     columns: { id: true, name: true, isPublished: true, createdAt: true },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { churchIntegrations } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const PLATFORMS = ["zoom", "teams", "google_meet"] as const;
 
@@ -39,19 +40,40 @@ export async function GET(
   const stateParam = searchParams.get("state");
   const errorParam = searchParams.get("error");
 
+  if (!stateParam) {
+    return NextResponse.redirect(`${baseFallback}missing_state`);
+  }
+
+  // Verify HMAC-signed state to prevent forgery
+  const stateSecret = process.env.OAUTH_STATE_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const dotIndex = stateParam.lastIndexOf(".");
+  if (dotIndex === -1) {
+    return NextResponse.redirect(`${baseFallback}invalid_state`);
+  }
+  const statePayload = stateParam.slice(0, dotIndex);
+  const stateHmac = stateParam.slice(dotIndex + 1);
+  const expectedHmac = createHmac("sha256", stateSecret).update(statePayload).digest("hex");
+  try {
+    if (!timingSafeEqual(Buffer.from(stateHmac, "hex"), Buffer.from(expectedHmac, "hex"))) {
+      return NextResponse.redirect(`${baseFallback}invalid_state`);
+    }
+  } catch {
+    return NextResponse.redirect(`${baseFallback}invalid_state`);
+  }
+
   let churchId: string;
   let subdomain: string;
   try {
-    if (!stateParam) throw new Error("missing state");
-    const decoded = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+    const decoded = JSON.parse(Buffer.from(statePayload, "base64url").toString());
     churchId = decoded.churchId;
     subdomain = decoded.subdomain;
     if (!churchId || !subdomain) throw new Error("invalid state");
-  } catch {
+  } catch (e) {
+    console.error("[oauth callback] state decode error:", e);
     if (errorParam) {
       return NextResponse.redirect(`${baseFallback}${errorParam}`);
     }
-    return NextResponse.redirect(`${baseFallback}missing_code`);
+    return NextResponse.redirect(`${baseFallback}invalid_state`);
   }
 
   const integrationsUrl = getTenantUrl(subdomain, "/admin/integrations");

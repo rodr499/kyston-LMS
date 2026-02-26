@@ -28,15 +28,19 @@ export default function ProgramForm({
         body: JSON.stringify({ churchId, name, description, isPublished, ...(initial && { programId: initial.id }) }),
       });
       if (!res.ok) {
-        const d = await res.json();
-        setError(d.error ?? "Failed");
-        setLoading(false);
+        let msg = "Failed to save";
+        try {
+          const d = await res.json();
+          if (d.error) msg = d.error;
+        } catch {}
+        setError(msg);
         return;
       }
       router.push("/admin/programs");
       router.refresh();
     } catch {
       setError("Something went wrong");
+    } finally {
       setLoading(false);
     }
   }

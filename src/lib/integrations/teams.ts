@@ -38,7 +38,8 @@ export async function createMeeting(
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || "Graph API error");
+    console.error("[teams] createMeeting failed:", err);
+    throw new Error("Failed to create Teams meeting");
   }
   const data = (await res.json()) as { joinWebUrl?: string; joinUrl?: string };
   return { meetingUrl: data.joinWebUrl ?? data.joinUrl ?? "" };

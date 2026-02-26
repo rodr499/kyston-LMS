@@ -2,16 +2,17 @@ import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { enrollments, activityCompletions, activities } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { GraduationCap, BookOpen } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function LearnDashboard() {
   const tenant = await getTenant();
-  if (!tenant) return null;
+  if (!tenant) redirect("/login");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
   const myEnrollments = await db.query.enrollments.findMany({
     where: and(
       eq(enrollments.churchId, tenant.churchId),
@@ -27,28 +28,47 @@ export default async function LearnDashboard() {
       },
     },
   });
-  const progressList = await Promise.all(
-    myEnrollments.map(async (e) => {
-      if (!e.class) return { enrollment: e, completed: 0, total: 0 };
-      const classActivities = await db.query.activities.findMany({
-        where: eq(activities.classId, e.class.id),
-        columns: { id: true },
-      });
-      const total = classActivities.length;
-      let completed = 0;
-      for (const a of classActivities) {
-        const c = await db.query.activityCompletions.findFirst({
-          where: and(
-            eq(activityCompletions.activityId, a.id),
+
+  // Batch-fetch all activities and completions in 2 queries instead of N*M
+  const classIds = myEnrollments.map((e) => e.class?.id).filter(Boolean) as string[];
+  let completedSet = new Set<string>();
+  const activitiesByClass = new Map<string, { id: string; classId: string }[]>();
+
+  if (classIds.length) {
+    const [allActivities, allCompletions] = await Promise.all([
+      db.query.activities.findMany({
+        where: inArray(activities.classId, classIds),
+        columns: { id: true, classId: true },
+      }),
+      db
+        .select({ activityId: activityCompletions.activityId })
+        .from(activityCompletions)
+        .innerJoin(activities, eq(activityCompletions.activityId, activities.id))
+        .where(
+          and(
+            inArray(activities.classId, classIds),
             eq(activityCompletions.studentId, user.id),
             eq(activityCompletions.status, "completed")
-          ),
-        });
-        if (c) completed++;
-      }
-      return { enrollment: e, completed, total };
-    })
-  );
+          )
+        ),
+    ]);
+
+    completedSet = new Set(allCompletions.map((c) => c.activityId));
+    for (const a of allActivities) {
+      const list = activitiesByClass.get(a.classId) ?? [];
+      list.push(a);
+      activitiesByClass.set(a.classId, list);
+    }
+  }
+
+  const progressList = myEnrollments.map((e) => {
+    if (!e.class) return { enrollment: e, completed: 0, total: 0 };
+    const classActivities = activitiesByClass.get(e.class.id) ?? [];
+    const total = classActivities.length;
+    const completed = classActivities.filter((a) => completedSet.has(a.id)).length;
+    return { enrollment: e, completed, total };
+  });
+
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";

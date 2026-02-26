@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { churches } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+const VALID_PLANS = ["free", "pro", "unlimited"] as const;
+type ChurchPlan = typeof VALID_PLANS[number];
+
 export async function POST(request: Request) {
   const key = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -20,6 +23,7 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
+    console.error("[stripe webhook] signature verification failed:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
@@ -27,9 +31,13 @@ export async function POST(request: Request) {
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
     const [church] = await db.select().from(churches).where(eq(churches.stripeCustomerId, customerId)).limit(1);
     if (church) {
+      const lookupKey = sub.items.data[0]?.price?.lookup_key ?? "";
+      const newPlan: ChurchPlan = (VALID_PLANS as readonly string[]).includes(lookupKey)
+        ? (lookupKey as ChurchPlan)
+        : church.plan;
       await db.update(churches).set({
         stripeSubscriptionId: sub.id,
-        plan: (sub.items.data[0]?.price?.lookup_key as "free" | "pro" | "unlimited") ?? church.plan,
+        plan: newPlan,
         updatedAt: new Date(),
       }).where(eq(churches.id, church.id));
     }

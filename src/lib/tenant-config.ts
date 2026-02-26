@@ -296,7 +296,9 @@ export function canConnectIntegration(
 ): boolean {
   if (limits.integrationsMode === "none") return false;
   if (!limits.allowedIntegrations.includes(platform)) return false;
-  return currentIntegrationCount < limits.allowedIntegrations.length;
+  // Check against the total number of allowed platforms (each can be connected once)
+  const maxIntegrations = limits.allowedIntegrations.length;
+  return currentIntegrationCount < maxIntegrations;
 }
 
 export type LimitUsageItem = { current: number; max: number; status: "unlimited" | "ok" | "approaching" | "at_limit" };
