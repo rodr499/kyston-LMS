@@ -2,8 +2,27 @@ import { db } from "@/lib/db";
 import { churches, users } from "@/lib/db/schema";
 import { and, eq, sql, desc } from "drizzle-orm";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { Plus, ExternalLink } from "lucide-react";
 
 export default async function TenantsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let myChurch: { id: string; name: string; subdomain: string } | null = null;
+  if (user) {
+    const me = await db.query.users.findFirst({
+      where: eq(users.id, user.id),
+      columns: { churchId: true, role: true },
+    });
+    if (me?.role === "super_admin" && me.churchId) {
+      const c = await db.query.churches.findFirst({
+        where: eq(churches.id, me.churchId),
+        columns: { id: true, name: true, subdomain: true },
+      });
+      if (c) myChurch = c;
+    }
+  }
+
   const list = await db.query.churches.findMany({
     orderBy: [desc(churches.createdAt)],
     columns: {
@@ -32,12 +51,50 @@ export default async function TenantsPage() {
       };
     })
   );
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "kyston.org";
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-base-content">Tenants</h1>
-        <p className="text-base-content/60 font-body mt-1">All churches on the platform.</p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-base-content">Tenants</h1>
+          <p className="text-base-content/60 font-body mt-1">All churches on the platform.</p>
+        </div>
+        <Link href="/superadmin/tenants/new" className="btn btn-primary rounded-xl gap-2 font-body">
+          <Plus className="w-4 h-4" /> Create tenant
+        </Link>
       </div>
+      {myChurch && (
+        <div className="card bg-primary/10 border border-primary/20 rounded-2xl shadow-sm mb-8">
+          <div className="card-body flex-row flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-base-content">Your tenant</h2>
+              <p className="font-body text-base-content/70 mt-0.5">{myChurch.name} ({myChurch.subdomain})</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={appDomain.includes("localhost") ? `http://${myChurch.subdomain}.${appDomain}/admin` : `https://${myChurch.subdomain}.${appDomain}/admin`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-sm rounded-xl font-body gap-1"
+              >
+                <ExternalLink className="w-4 h-4" /> Admin (create & edit)
+              </a>
+              <Link href={`/superadmin/tenants/${myChurch.id}`} className="btn btn-outline btn-primary btn-sm rounded-xl font-body">
+                View in super admin
+              </Link>
+              <a
+                href={appDomain.includes("localhost") ? `http://${myChurch.subdomain}.${appDomain}` : `https://${myChurch.subdomain}.${appDomain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm rounded-xl font-body gap-1"
+              >
+                Open site
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb] overflow-hidden">
         <div className="card-body p-0">
           <div className="p-6 border-b border-base-300">

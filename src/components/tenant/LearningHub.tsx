@@ -1,12 +1,17 @@
 import Link from "next/link";
 import EnrollButton from "./EnrollButton";
+import ShareButton from "./ShareButton";
 import { BookOpen } from "lucide-react";
 
 type Class = {
   id: string;
   name: string;
   allowSelfEnrollment: boolean;
+  noEnrollmentNeeded: boolean;
+  closedForEnrollment?: boolean;
+  closedContact?: { fullName: string; email: string } | null;
   meetingUrl: string | null;
+  meetingScheduledAt: Date | string | null;
   facilitator?: { fullName: string } | null;
 };
 
@@ -45,16 +50,16 @@ export default function LearningHub({ church, programs, enrolledClassIds, userId
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {userId ? (
               <>
-                <Link href="/learn" className="btn btn-ghost btn-sm rounded-xl font-body">My classes</Link>
-                <Link href="/login" className="btn btn-ghost btn-sm rounded-xl font-body">Account</Link>
+                <Link href="/learn" className="btn btn-ghost btn-sm rounded-xl font-body text-xs sm:text-sm px-2 sm:px-4">My classes</Link>
+                <Link href="/login" className="btn btn-ghost btn-sm rounded-xl font-body text-xs sm:text-sm px-2 sm:px-4">Account</Link>
               </>
             ) : (
               <>
-                <Link href="/login" className="btn btn-ghost btn-sm rounded-xl font-body">Sign in</Link>
-                <Link href="/register" className="btn btn-primary btn-sm rounded-xl font-body">Register</Link>
+                <Link href="/login" className="btn btn-ghost btn-sm rounded-xl font-body text-xs sm:text-sm px-2 sm:px-4">Sign in</Link>
+                <Link href="/register" className="btn btn-primary btn-sm rounded-xl font-body text-xs sm:text-sm px-2 sm:px-4">Register</Link>
               </>
             )}
           </div>
@@ -101,32 +106,56 @@ export default function LearningHub({ church, programs, enrolledClassIds, userId
                       <h3 className="font-heading text-lg font-semibold text-base-content/90 mb-4 flex items-center gap-2">
                         <span className="badge badge-primary badge-outline badge-sm font-body">{course.name}</span>
                       </h3>
-                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {course.classes.map((cls) => (
                           <div
                             key={cls.id}
-                            className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+                            className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden relative"
                           >
-                            <div className="card-body">
-                              <div className="flex items-start justify-between gap-2">
-                                <h4 className="font-heading card-title text-lg leading-tight">{cls.name}</h4>
-                                {enrolledClassIds.has(cls.id) && (
-                                  <span className="badge badge-success badge-sm gap-1 font-body shrink-0">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                                    Enrolled
-                                  </span>
-                                )}
+                            <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+                              {enrolledClassIds.has(cls.id) && (
+                                <span className="badge badge-success badge-sm gap-1 font-body">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+                                  Enrolled
+                                </span>
+                              )}
+                              <ShareButton classId={cls.id} className={cls.name} />
+                            </div>
+                            <div className="card-body p-4 sm:p-5">
+                              <div className="flex items-start gap-2 pr-20">
+                                <h4 className="font-heading card-title text-base sm:text-lg leading-tight">{cls.name}</h4>
                               </div>
                               {cls.facilitator && (
                                 <p className="font-body text-sm text-base-content/60">
                                   <span className="opacity-70">Led by</span> {cls.facilitator.fullName}
                                 </p>
                               )}
-                              <div className="card-actions justify-end mt-4 pt-4 border-t border-base-300">
+                              <div className="card-actions flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-base-300">
                                 {enrolledClassIds.has(cls.id) ? (
                                   <Link href="/learn" className="btn btn-primary btn-sm rounded-xl font-body">
                                     Go to class
                                   </Link>
+                                ) : cls.noEnrollmentNeeded ? (
+                                  <Link href={`/learn/classes/${cls.id}`} className="btn btn-primary btn-sm rounded-xl font-body">
+                                    Open class
+                                  </Link>
+                                ) : cls.closedForEnrollment ? (
+                                  <div className="w-full space-y-1 text-left">
+                                    <span className="badge badge-ghost badge-sm font-body">Closed</span>
+                                    {cls.closedContact ? (
+                                      <p className="font-body text-xs text-base-content/70">
+                                        To request access, contact:{" "}
+                                        <a href={`mailto:${cls.closedContact.email}`} className="link link-hover">
+                                          {cls.closedContact.fullName} ({cls.closedContact.email})
+                                        </a>
+                                      </p>
+                                    ) : (
+                                      <p className="font-body text-xs text-base-content/50">Class is closed for enrollment.</p>
+                                    )}
+                                    <Link href={`/learn/classes/${cls.id}`} className="btn btn-ghost btn-sm rounded-xl font-body text-primary">
+                                      View details
+                                    </Link>
+                                  </div>
                                 ) : cls.allowSelfEnrollment && userId ? (
                                   <EnrollButton classId={cls.id} />
                                 ) : cls.allowSelfEnrollment && !userId ? (
@@ -136,6 +165,29 @@ export default function LearningHub({ church, programs, enrolledClassIds, userId
                                 ) : (
                                   <span className="font-body text-xs text-base-content/50">Enrollment by invite</span>
                                 )}
+                                {cls.meetingUrl && (enrolledClassIds.has(cls.id) || cls.noEnrollmentNeeded) && (() => {
+                                  const now = Date.now();
+                                  const scheduledAt = cls.meetingScheduledAt ? new Date(cls.meetingScheduledAt).getTime() : null;
+                                  const active = !scheduledAt || (now >= scheduledAt - 60 * 60 * 1000);
+                                  return active ? (
+                                    <a
+                                      href={cls.meetingUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="btn btn-secondary btn-sm rounded-xl font-body"
+                                    >
+                                      Join meeting
+                                    </a>
+                                  ) : (
+                                    <button
+                                      disabled
+                                      className="btn btn-secondary btn-sm rounded-xl font-body opacity-40 cursor-not-allowed"
+                                      title={`Available 1 hour before: ${new Date(scheduledAt!).toLocaleString()}`}
+                                    >
+                                      Join meeting
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>

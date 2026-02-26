@@ -43,10 +43,12 @@ function PlanLimitField({
 }: {
   name: string;
   label: string;
-  defaultValue: number;
+  defaultValue?: number;
   defaultUnlimited: boolean;
 }) {
   const [unlimited, setUnlimited] = useState(defaultUnlimited);
+  // Ensure a defined number so the input is never uncontrolled (undefined -> defined)
+  const value = defaultValue !== undefined && defaultValue !== null ? defaultValue : 0;
   return (
     <div className="form-control">
       <label className="label">
@@ -67,7 +69,7 @@ function PlanLimitField({
         <input
           type="number"
           name={name}
-          defaultValue={defaultValue}
+          defaultValue={value}
           className="input input-bordered rounded-lg font-body placeholder-[#9ca3af] text-[#111827]"
         />
       )}

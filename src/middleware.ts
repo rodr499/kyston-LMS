@@ -30,8 +30,21 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
 
-  // No subdomain or www → marketing (root domain)
+  // No subdomain or www → root domain; only home, login, register, app routes, API, and auth are allowed (external/marketing pages redirect to home)
   if (!subdomain) {
+    const allowedOnRoot =
+      pathname === "/" ||
+      pathname === "/login" ||
+      pathname === "/register" ||
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/auth/") ||
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/facilitator") ||
+      pathname.startsWith("/learn") ||
+      pathname.startsWith("/superadmin");
+    if (!allowedOnRoot) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
     const { response } = await runSupabaseAuth(request, requestHeaders);
     return response;
   }

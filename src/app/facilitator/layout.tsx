@@ -21,7 +21,7 @@ export default async function FacilitatorLayout({
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true, fullName: true },
   });
-  if (row?.role !== "facilitator" && row?.role !== "church_admin") redirect("/");
+  if (row?.role !== "facilitator" && row?.role !== "church_admin" && row?.role !== "super_admin") redirect("/");
   if (row.churchId !== tenant.churchId) redirect("/");
   const church = await getChurchBySubdomain(tenant.subdomain);
 

@@ -47,9 +47,8 @@ export async function GET(
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (row?.role !== "church_admin" || row.churchId !== tenant.churchId) {
-    return NextResponse.redirect(`${origin}/`);
-  }
+  const canAdmin = (row?.role === "church_admin" || row?.role === "super_admin") && row?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.redirect(`${origin}/`);
   const sharedBase = getSharedCallbackBase();
   const redirectUri = `${sharedBase}/api/integrations/${platform}/callback`;
   const stateSecret = process.env.OAUTH_STATE_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -82,8 +81,10 @@ export async function GET(
     url.searchParams.set("client_id", clientId);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("redirect_uri", redirectUri);
-    url.searchParams.set("scope", "OnlineMeetings.ReadWrite User.Read openid");
+    url.searchParams.set("response_mode", "query");
+    url.searchParams.set("scope", "OnlineMeetings.ReadWrite Calendars.ReadWrite User.Read Group.Read.All openid offline_access");
     url.searchParams.set("state", state);
+    url.searchParams.set("prompt", "select_account");
     return NextResponse.redirect(url.toString());
   }
 
@@ -97,6 +98,8 @@ export async function GET(
     url.searchParams.set("response_type", "code");
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "https://www.googleapis.com/auth/calendar.events");
+    url.searchParams.set("access_type", "offline");
+    url.searchParams.set("prompt", "consent");
     url.searchParams.set("state", state);
     return NextResponse.redirect(url.toString());
   }

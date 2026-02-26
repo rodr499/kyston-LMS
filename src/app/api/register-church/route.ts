@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { churches, users } from "@/lib/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getRegistrationEnabled } from "@/lib/platform-settings";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
+  const registrationEnabled = await getRegistrationEnabled();
+  if (!registrationEnabled) {
+    return NextResponse.json(
+      { error: "New church registration is currently disabled." },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
   const {
     churchName,

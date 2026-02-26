@@ -8,23 +8,25 @@ export default function InviteUserForm({ churchId }: { churchId: string }) {
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "facilitator" | "church_admin">("student");
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"add" | "invite" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(sendInvite: boolean) {
     setError(null);
     setLoading(true);
+    setLoadingAction(sendInvite ? "invite" : "add");
     try {
       const res = await fetch("/api/admin/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ churchId, email, fullName, role }),
+        body: JSON.stringify({ churchId, email, fullName, role, sendInvite }),
       });
       if (!res.ok) {
         const d = await res.json();
         setError(d.error ?? "Failed");
         setLoading(false);
+        setLoadingAction(null);
         return;
       }
       router.push("/admin/users");
@@ -32,13 +34,19 @@ export default function InviteUserForm({ churchId }: { churchId: string }) {
     } catch {
       setError("Something went wrong");
       setLoading(false);
+      setLoadingAction(null);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit(false);
   }
 
   return (
     <form onSubmit={handleSubmit} className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb] w-full max-w-2xl">
       <div className="card-body gap-6">
-        <h2 className="font-heading text-xl font-bold">Invite user</h2>
+        <h2 className="font-heading text-xl font-bold">Add or invite user</h2>
         <div className="form-control w-full">
           <label className="label">
             <span className="label-text font-body font-medium text-base-content">Email</span>
@@ -83,8 +91,11 @@ export default function InviteUserForm({ churchId }: { churchId: string }) {
           <button type="button" onClick={() => router.back()} className="btn btn-ghost rounded-xl font-body w-full sm:w-auto min-h-[48px]">
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary rounded-xl font-body w-full sm:w-auto min-h-[48px]" disabled={loading}>
-            {loading ? "Sending…" : "Send invite"}
+          <button type="button" onClick={() => submit(false)} className="btn btn-primary rounded-xl font-body w-full sm:w-auto min-h-[48px]" disabled={loading}>
+            {loading && loadingAction === "add" ? "Adding…" : "Add user"}
+          </button>
+          <button type="button" onClick={() => submit(true)} className="btn btn-outline btn-primary rounded-xl font-body w-full sm:w-auto min-h-[48px]" disabled={loading}>
+            {loading && loadingAction === "invite" ? "Sending…" : "Send invite"}
           </button>
         </div>
       </div>

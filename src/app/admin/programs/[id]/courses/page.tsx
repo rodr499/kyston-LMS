@@ -1,10 +1,11 @@
 import { getTenant } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { programs, courses } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Plus, GraduationCap, BookOpen } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
+import CoursesListClient from "@/components/admin/CoursesListClient";
 
 export default async function ProgramCoursesPage({
   params,
@@ -18,10 +19,11 @@ export default async function ProgramCoursesPage({
     where: and(eq(programs.id, programId), eq(programs.churchId, tenant.churchId)),
   });
   if (!program) notFound();
-  const courseList = await db.query.courses.findMany({
-    where: eq(courses.programId, programId),
-    columns: { id: true, name: true, isPublished: true },
-  });
+  const courseList = await db
+    .select({ id: courses.id, name: courses.name, isPublished: courses.isPublished, sortOrder: courses.sortOrder })
+    .from(courses)
+    .where(eq(courses.programId, programId))
+    .orderBy(asc(courses.sortOrder));
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -55,39 +57,7 @@ export default async function ProgramCoursesPage({
               </Link>
             </div>
           ) : (
-            <div className="table-responsive-card overflow-x-auto">
-              <table className="table table-zebra">
-                <thead>
-                  <tr className="bg-base-200 text-base-content/60 text-xs uppercase tracking-widest font-body">
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courseList.map((c) => (
-                    <tr key={c.id} className="hover:bg-base-200 transition-colors">
-                      <td data-label="Name" className="font-body font-medium">{c.name}</td>
-                      <td data-label="Status">
-                        {c.isPublished ? (
-                          <span className="badge badge-success gap-1 font-body text-xs">Published</span>
-                        ) : (
-                          <span className="badge badge-ghost font-body text-xs">Draft</span>
-                        )}
-                      </td>
-                      <td data-label="Actions">
-                        <div className="flex gap-2">
-                          <Link href={`/admin/programs/${programId}/courses/${c.id}`} className="btn btn-ghost btn-xs rounded-lg font-body">Edit</Link>
-                          <Link href={`/admin/programs/${programId}/courses/${c.id}/classes`} className="btn btn-ghost btn-xs rounded-lg gap-1 font-body">
-                            <GraduationCap className="w-3.5 h-3.5" /> Classes
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CoursesListClient initialCourses={courseList} programId={programId} />
           )}
         </div>
       </div>

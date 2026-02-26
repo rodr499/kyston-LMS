@@ -47,20 +47,25 @@ const superAdminNav: NavItem[] = [
   { href: "/superadmin/coupons", label: "Coupons", icon: Tag },
   { href: "/superadmin/users", label: "Users", icon: UserCheck },
   { href: "/superadmin/billing", label: "Billing", icon: CreditCard },
+  { href: "/superadmin/settings", label: "Settings", icon: Settings },
 ];
 
 type Props = {
   variant: "admin" | "facilitator" | "learn" | "superadmin";
   user?: { fullName: string; role: string };
   churchName?: string;
+  /** When false, Integrations nav item is greyed out (admin variant only). Default true when omitted. */
+  integrationsEnabled?: boolean;
 };
 
-export default function AdminSidebar({ variant, user, churchName }: Props) {
+export default function AdminSidebar({ variant, user, churchName, integrationsEnabled = true }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = variant === "admin" ? adminNav : variant === "facilitator" ? facilitatorNav : variant === "learn" ? learnNav : superAdminNav;
 
   const closeDrawer = () => setMobileOpen(false);
+
+  const isIntegrationsDisabled = variant === "admin" && !integrationsEnabled;
 
   return (
     <>
@@ -74,7 +79,7 @@ export default function AdminSidebar({ variant, user, churchName }: Props) {
         >
           <Menu className="w-6 h-6" />
         </button>
-        <Link href={variant === "superadmin" ? "/superadmin" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
+        <Link href={variant === "superadmin" ? "/superadmin" : variant === "admin" ? "/admin" : variant === "facilitator" ? "/facilitator" : variant === "learn" ? "/learn" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
           <span className="font-heading text-xl font-bold text-white">Kyston</span>
           <span className="text-secondary font-bold text-xl"> LMS</span>
         </Link>
@@ -99,7 +104,7 @@ export default function AdminSidebar({ variant, user, churchName }: Props) {
       >
         <div className="p-4 md:p-6 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
           <div className="flex flex-col">
-            <Link href={variant === "superadmin" ? "/superadmin" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
+            <Link href={variant === "superadmin" ? "/superadmin" : variant === "admin" ? "/admin" : variant === "facilitator" ? "/facilitator" : variant === "learn" ? "/learn" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
               <span className="font-heading text-2xl font-bold text-white">Kyston</span>
               <span className="text-secondary font-bold text-2xl"> LMS</span>
             </Link>
@@ -119,17 +124,32 @@ export default function AdminSidebar({ variant, user, churchName }: Props) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== "/admin" && item.href !== "/facilitator" && item.href !== "/learn" && item.href !== "/superadmin" && pathname.startsWith(item.href));
+            const isIntegrationsItem = item.href === "/admin/integrations";
+            const disabled = isIntegrationsItem && isIntegrationsDisabled;
+            const isActive = !disabled && (pathname === item.href || (item.href !== "/admin" && item.href !== "/facilitator" && item.href !== "/learn" && item.href !== "/superadmin" && pathname.startsWith(item.href)));
+            const baseClass = `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group min-h-[44px]`;
+            const activeClass = isActive ? "bg-primary/20 text-white border-l-4 border-secondary" : "text-neutral-content/70 hover:bg-white/10 hover:text-white";
+            const disabledClass = "opacity-50 cursor-not-allowed text-neutral-content/50 pointer-events-none";
+            const className = `${baseClass} ${disabled ? disabledClass : activeClass}`;
+            if (disabled) {
+              return (
+                <span
+                  key={item.href}
+                  className={className}
+                  title="Not included in your plan"
+                  aria-disabled
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <span className="font-body text-sm font-medium">{item.label}</span>
+                </span>
+              );
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={closeDrawer}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group min-h-[44px] ${
-                  isActive
-                    ? "bg-primary/20 text-white border-l-4 border-secondary"
-                    : "text-neutral-content/70 hover:bg-white/10 hover:text-white"
-                }`}
+                className={className}
               >
                 <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-secondary" : "group-hover:text-secondary transition-colors"}`} />
                 <span className="font-body text-sm font-medium">{item.label}</span>

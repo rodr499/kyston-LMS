@@ -26,7 +26,7 @@ export default async function FacilitatorActivitiesPage({
     where: eq(users.id, user.id),
     columns: { role: true },
   });
-  if (cls.facilitatorId !== user.id && me?.role !== "church_admin") notFound();
+  if (cls.facilitatorId !== user.id && me?.role !== "church_admin" && me?.role !== "super_admin") notFound();
   const list = await db.query.activities.findMany({
     where: and(eq(activities.classId, id), eq(activities.churchId, tenant.churchId)),
     orderBy: [asc(activities.orderIndex)],

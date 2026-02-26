@@ -1,0 +1,2 @@
+ALTER TABLE "courses" ADD COLUMN "sort_order" integer DEFAULT 0 NOT NULL;
+ALTER TABLE "classes" ADD COLUMN "sort_order" integer DEFAULT 0 NOT NULL;

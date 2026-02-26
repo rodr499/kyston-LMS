@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { users, churches } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { PromoteToSuperAdminButton } from "./PromoteToSuperAdminButton";
 
 export default async function SuperAdminUsersPage() {
   const list = await db.query.users.findMany({
@@ -26,7 +27,7 @@ export default async function SuperAdminUsersPage() {
   }
 
   const roleBadge = (role: string) => {
-    if (role === "super_admin") return <span className="badge badge-accent badge-sm font-body">Super Admin</span>;
+    if (role === "super_admin") return <span className="badge badge-accent badge-sm font-body whitespace-nowrap">Super Admin</span>;
     if (role === "church_admin") return <span className="badge badge-primary badge-sm font-body">Admin</span>;
     if (role === "facilitator") return <span className="badge badge-secondary badge-sm font-body">Facilitator</span>;
     return <span className="badge badge-ghost badge-sm font-body">Student</span>;
@@ -53,6 +54,7 @@ export default async function SuperAdminUsersPage() {
                   <th>Church</th>
                   <th>Status</th>
                   <th>Created</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -70,6 +72,13 @@ export default async function SuperAdminUsersPage() {
                       )}
                     </td>
                     <td data-label="Created" className="font-body text-base-content/70">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td data-label="Actions">
+                      {u.role !== "super_admin" ? (
+                        <PromoteToSuperAdminButton userId={u.id} />
+                      ) : (
+                        <span className="text-base-content/40 font-body text-xs">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

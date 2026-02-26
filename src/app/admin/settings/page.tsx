@@ -2,6 +2,7 @@ import { getTenant } from "@/lib/tenant";
 import { getChurchById } from "@/lib/db/queries/churches";
 import { redirect } from "next/navigation";
 import SettingsForm from "@/components/admin/SettingsForm";
+import DeleteMyAccount from "@/components/admin/DeleteMyAccount";
 
 export default async function AdminSettingsPage() {
   const tenant = await getTenant();
@@ -23,6 +24,7 @@ export default async function AdminSettingsPage() {
           logoUrl: church.logoUrl,
         }}
       />
+      <DeleteMyAccount />
     </div>
   );
 }

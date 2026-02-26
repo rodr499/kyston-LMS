@@ -19,9 +19,8 @@ export async function GET() {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.redirect(new URL("/admin", process.env.NEXT_PUBLIC_APP_DOMAIN ?? "https://kyston.org"));
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.redirect(new URL("/admin", process.env.NEXT_PUBLIC_APP_DOMAIN ?? "https://kyston.org"));
   const church = await db.query.churches.findFirst({
     where: eq(churches.id, tenant.churchId),
     columns: { stripeCustomerId: true },

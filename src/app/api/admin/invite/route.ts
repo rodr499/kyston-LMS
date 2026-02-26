@@ -16,30 +16,52 @@ export async function POST(request: Request) {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
-  const { churchId, email, fullName, role } = body as {
+  const { churchId, email, fullName, role, sendInvite } = body as {
     churchId: string;
     email: string;
     fullName?: string;
     role: string;
+    sendInvite?: boolean;
   };
   if (churchId !== tenant.churchId || !email) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
   const admin = createAdminClient();
-  const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName ?? email, church_id: churchId, role },
-    redirectTo: `https://${tenant.subdomain}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "kyston.org"}/auth/callback?church_id=${churchId}`,
-  });
-  if (inviteError) {
-    return NextResponse.json({ error: inviteError.message }, { status: 400 });
+  let authUserId: string | null = null;
+
+  if (sendInvite) {
+    const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: fullName ?? email, church_id: churchId, role },
+      redirectTo: `https://${tenant.subdomain}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "kyston.org"}/auth/callback?church_id=${churchId}`,
+    });
+    if (inviteError) {
+      return NextResponse.json({ error: inviteError.message }, { status: 400 });
+    }
+    authUserId = inviteData?.user?.id ?? null;
+  } else {
+    const randomPassword = crypto.randomUUID() + crypto.randomUUID();
+    const { data: createData, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password: randomPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName ?? email,
+        church_id: churchId,
+        role,
+      },
+    });
+    if (createError) {
+      return NextResponse.json({ error: createError.message }, { status: 400 });
+    }
+    authUserId = createData?.user?.id ?? null;
   }
-  if (inviteData?.user?.id) {
+
+  if (authUserId) {
     await db.insert(users).values({
-      id: inviteData.user.id,
+      id: authUserId,
       churchId,
       email,
       fullName: fullName ?? email,

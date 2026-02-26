@@ -4,15 +4,20 @@ import { programs, courses, classes as classesTable, users } from "@/lib/db/sche
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import ClassForm from "@/components/admin/ClassForm";
+import DeleteClassButton from "@/components/admin/DeleteClassButton";
+import ClassListFeedback from "@/components/admin/ClassListFeedback";
 
 export default async function ClassDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; courseId: string; classId: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   const tenant = await getTenant();
   if (!tenant) return null;
   const { id: programId, courseId, classId } = await params;
+  const { saved } = await searchParams;
   const program = await db.query.programs.findFirst({
     where: and(eq(programs.id, programId), eq(programs.churchId, tenant.churchId)),
   });
@@ -27,18 +32,36 @@ export default async function ClassDetailPage({
     where: and(eq(users.churchId, tenant.churchId), eq(users.role, "facilitator")),
     columns: { id: true, fullName: true },
   });
+  const contactUsers = await db.query.users.findMany({
+    where: and(eq(users.churchId, tenant.churchId), eq(users.isActive, true)),
+    columns: { id: true, fullName: true, email: true },
+    orderBy: (u, { asc }) => [asc(u.fullName)],
+  });
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-base-content">Edit class</h1>
-        <p className="text-base-content/60 font-body mt-1">{cls.name}</p>
+      <ClassListFeedback saved={saved} />
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-base-content">Edit class</h1>
+          <p className="text-base-content/60 font-body mt-1">{cls.name}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <DeleteClassButton
+            classId={cls.id}
+            churchId={tenant.churchId}
+            programId={programId}
+            courseId={courseId}
+            label="Delete class"
+            variant="error"
+          />
+        </div>
       </div>
       <ClassForm
         churchId={tenant.churchId}
         programId={programId}
         courseId={courseId}
-        courseName={course.name}
         facilitators={facilitators}
+        contactUsers={contactUsers}
         initial={{
           id: cls.id,
           name: cls.name,
@@ -46,10 +69,15 @@ export default async function ClassDetailPage({
           gradingSystem: cls.gradingSystem,
           facilitatorId: cls.facilitatorId,
           allowSelfEnrollment: cls.allowSelfEnrollment,
+          noEnrollmentNeeded: cls.noEnrollmentNeeded,
           isPublished: cls.isPublished,
+          closedForEnrollment: cls.closedForEnrollment,
+          closedContactUserId: cls.closedContactUserId,
           meetingPlatform: cls.meetingPlatform,
           meetingUrl: cls.meetingUrl,
           meetingScheduledAt: cls.meetingScheduledAt,
+          meetingDurationMinutes: cls.meetingDurationMinutes ?? 60,
+          meetingRecurrence: cls.meetingRecurrence as { type: "weekly"; daysOfWeek: number[]; endDate: string } | null,
         }}
       />
     </div>

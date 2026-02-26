@@ -10,6 +10,13 @@ export interface TokenSet {
   tokenExpiresAt?: Date | null;
 }
 
+/** Weekly recurrence: days 0=Sun..6=Sat, endDate YYYY-MM-DD. Used for Teams recurring calendar events. */
+export interface MeetingRecurrence {
+  type: "weekly";
+  daysOfWeek: number[];
+  endDate: string;
+}
+
 export interface CreateMeetingInput {
   classId: string;
   churchId: string;
@@ -19,6 +26,10 @@ export interface CreateMeetingInput {
   timezone?: string;
   /** Facilitator email (UPN) for Teams: added as co-organizer when present. */
   facilitatorEmail?: string | null;
+  /** When set, Teams creates a recurring calendar event instead of one-time online meeting. */
+  recurrence?: MeetingRecurrence | null;
+  /** When set, Teams recurring events are created in this calendar (Graph calendar id). */
+  calendarId?: string | null;
 }
 
 export interface CreateMeetingResult {

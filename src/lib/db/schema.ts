@@ -85,6 +85,15 @@ export const integrationRequestStatusEnum = pgEnum("integration_request_status",
   "denied",
 ]);
 
+// Platform-wide settings (super admin only to modify)
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<unknown>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 // Tables
 export const churches = pgTable("churches", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -298,6 +307,7 @@ export const courses = pgTable("courses", {
   imageUrl: text("image_url"),
   prerequisiteCourseId: uuid("prerequisite_course_id"),
   isPublished: boolean("is_published").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -330,8 +340,19 @@ export const classes = pgTable("classes", {
   meetingUrl: text("meeting_url"),
   meetingId: text("meeting_id"),
   meetingScheduledAt: timestamp("meeting_scheduled_at", { withTimezone: true }),
+  meetingDurationMinutes: integer("meeting_duration_minutes").default(60),
+  /** For Teams: recurring series. { type: 'weekly', daysOfWeek: number[], endDate: 'YYYY-MM-DD' } or null. */
+  meetingRecurrence: jsonb("meeting_recurrence"),
   allowSelfEnrollment: boolean("allow_self_enrollment").default(false).notNull(),
+  noEnrollmentNeeded: boolean("no_enrollment_needed").default(false).notNull(),
   isPublished: boolean("is_published").default(false).notNull(),
+  /** When true, class is visible but enrollment is closed; show closedContactUser to reach out. */
+  closedForEnrollment: boolean("closed_for_enrollment").default(false).notNull(),
+  /** User to contact when closedForEnrollment is true (tenant user selected from dropdown). */
+  closedContactUserId: uuid("closed_contact_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -418,6 +439,8 @@ export const churchIntegrations = pgTable("church_integrations", {
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  /** Platform-specific config, e.g. Teams: { facilitatorGroupId: "azure-ad-group-object-id" } */
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -537,6 +560,10 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   }),
   facilitator: one(users, {
     fields: [classes.facilitatorId],
+    references: [users.id],
+  }),
+  closedContactUser: one(users, {
+    fields: [classes.closedContactUserId],
     references: [users.id],
   }),
   enrollments: many(enrollments),

@@ -26,7 +26,7 @@ export default async function FacilitatorStudentsPage({
     where: eq(users.id, user.id),
     columns: { role: true },
   });
-  if (cls.facilitatorId !== user.id && me?.role !== "church_admin") notFound();
+  if (cls.facilitatorId !== user.id && me?.role !== "church_admin" && me?.role !== "super_admin") notFound();
   const list = await db.query.enrollments.findMany({
     where: and(eq(enrollments.classId, id), eq(enrollments.churchId, tenant.churchId)),
     with: { student: { columns: { id: true, fullName: true, email: true } } },

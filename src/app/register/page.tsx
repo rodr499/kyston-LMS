@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,9 @@ import Link from "next/link";
 type Tenant = { churchId: string; subdomain: string } | null;
 
 export default function RegisterPage() {
-  const [tenant, setTenant] = useState<Tenant>(null);
+  const [tenant, setTenant] = useState<Tenant>(undefined as Tenant | undefined);
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
+  const registrationFetched = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -30,10 +32,28 @@ export default function RegisterPage() {
   const supabase = createClient();
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/tenant")
       .then((r) => r.json())
-      .then((d) => setTenant(d.tenant));
+      .then((d) => {
+        if (!cancelled) setTenant(d.tenant ?? null);
+      });
+    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (tenant === undefined) return;
+    if (tenant !== null) {
+      setRegistrationEnabled(true);
+      return;
+    }
+    if (registrationFetched.current) return;
+    registrationFetched.current = true;
+    fetch("/api/settings/registration")
+      .then((r) => r.json())
+      .then((d) => setRegistrationEnabled(d.registrationEnabled !== false))
+      .catch(() => setRegistrationEnabled(true));
+  }, [tenant]);
 
   async function handleLearnerSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,10 +114,22 @@ export default function RegisterPage() {
     }
   }
 
-  if (tenant === undefined) {
+  if (tenant === undefined || (tenant === null && registrationEnabled === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa]">
         <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    );
+  }
+
+  if (tenant === null && registrationEnabled === false) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-md text-center">
+          <h1 className="font-heading text-3xl font-bold text-base-content">Registration disabled</h1>
+          <p className="font-body text-base-content/70 mt-2">New church registration is currently disabled by the platform administrator.</p>
+          <Link href="/" className="btn btn-primary rounded-xl font-body mt-6 inline-block">Back to home</Link>
+        </div>
       </div>
     );
   }

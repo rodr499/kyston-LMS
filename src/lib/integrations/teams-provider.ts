@@ -3,7 +3,7 @@
  * Token refresh: Microsoft OAuth2 refresh_token grant.
  */
 import type { MeetingProvider, TokenSet, CreateMeetingInput, CreateMeetingResult } from "./types";
-import { createMeeting as teamsCreateMeeting } from "./teams";
+import { createMeeting as teamsCreateMeeting, createRecurringMeeting } from "./teams";
 
 const MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
@@ -40,6 +40,24 @@ export const teamsProvider: MeetingProvider = {
   platform: "teams",
   async createMeeting(input: CreateMeetingInput, accessToken: string): Promise<CreateMeetingResult> {
     const endTime = new Date(input.startTime.getTime() + input.durationMinutes * 60 * 1000);
+    if (input.recurrence?.type === "weekly" && input.recurrence.daysOfWeek?.length > 0 && input.recurrence.endDate) {
+      const result = await createRecurringMeeting(
+        input.classId,
+        input.title,
+        input.startTime,
+        endTime,
+        {
+          type: "weekly",
+          daysOfWeek: input.recurrence.daysOfWeek,
+          endDate: input.recurrence.endDate,
+        },
+        input.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        accessToken,
+        input.facilitatorEmail ?? undefined,
+        input.calendarId ?? undefined
+      );
+      return { meetingUrl: result.meetingUrl, meetingId: result.meetingId ?? null };
+    }
     const result = await teamsCreateMeeting(
       input.classId,
       input.title,
@@ -48,7 +66,7 @@ export const teamsProvider: MeetingProvider = {
       accessToken,
       input.facilitatorEmail ?? undefined
     );
-    return { meetingUrl: result.meetingUrl };
+    return { meetingUrl: result.meetingUrl, meetingId: result.meetingId ?? null };
   },
   refreshTokens: refreshTeamsTokens,
 };

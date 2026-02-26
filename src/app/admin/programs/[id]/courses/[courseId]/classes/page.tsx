@@ -1,11 +1,13 @@
 import { getTenant } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { programs, courses, classes } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Plus, CalendarDays } from "lucide-react";
 import ClassListFeedback from "@/components/admin/ClassListFeedback";
+import ClassesListClient from "@/components/admin/ClassesListClient";
 
 export default async function CourseClassesPage({
   params,
@@ -25,10 +27,24 @@ export default async function CourseClassesPage({
     where: and(eq(courses.id, courseId), eq(courses.churchId, tenant.churchId)),
   });
   if (!program || !course) notFound();
-  const classList = await db.query.classes.findMany({
-    where: eq(classes.courseId, courseId),
-    columns: { id: true, name: true, isPublished: true, allowSelfEnrollment: true },
-  });
+  const classList = await db
+    .select({
+      id: classes.id,
+      name: classes.name,
+      isPublished: classes.isPublished,
+      allowSelfEnrollment: classes.allowSelfEnrollment,
+      noEnrollmentNeeded: classes.noEnrollmentNeeded,
+      meetingUrl: classes.meetingUrl,
+      meetingPlatform: classes.meetingPlatform,
+      sortOrder: classes.sortOrder,
+    })
+    .from(classes)
+    .where(eq(classes.courseId, courseId))
+    .orderBy(asc(classes.sortOrder));
+  const headersList = await headers();
+  const host = headersList.get("host") ?? "";
+  const proto = headersList.get("x-forwarded-proto") ?? "http";
+  const baseUrl = host ? `${proto}://${host}` : "";
   return (
     <div>
       <ClassListFeedback saved={saved} meetingError={meetingError} />
@@ -63,36 +79,13 @@ export default async function CourseClassesPage({
               </Link>
             </div>
           ) : (
-            <div className="table-responsive-card overflow-x-auto">
-              <table className="table table-zebra">
-                <thead>
-                  <tr className="bg-base-200 text-base-content/60 text-xs uppercase tracking-widest font-body">
-                    <th>Name</th>
-                    <th>Self-enroll</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classList.map((c) => (
-                    <tr key={c.id} className="hover:bg-base-200 transition-colors">
-                      <td data-label="Name" className="font-body font-medium">{c.name}</td>
-                      <td data-label="Self-enroll" className="font-body">{c.allowSelfEnrollment ? "Yes" : "No"}</td>
-                      <td data-label="Status">
-                        {c.isPublished ? (
-                          <span className="badge badge-success gap-1 font-body text-xs">Published</span>
-                        ) : (
-                          <span className="badge badge-ghost font-body text-xs">Draft</span>
-                        )}
-                      </td>
-                      <td data-label="Actions">
-                        <Link href={`/admin/programs/${programId}/courses/${courseId}/classes/${c.id}`} className="btn btn-ghost btn-xs rounded-lg font-body">Edit</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ClassesListClient
+              initialClasses={classList}
+              programId={programId}
+              courseId={courseId}
+              churchId={tenant.churchId}
+              baseUrl={baseUrl}
+            />
           )}
         </div>
       </div>

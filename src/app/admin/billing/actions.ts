@@ -15,9 +15,8 @@ export async function redeemCoupon(churchId: string, code: string): Promise<{ me
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (me?.role !== "church_admin" || me.churchId !== churchId) {
-    throw new Error("Only church admins can redeem codes for their church");
-  }
+  const canAdmin = (me?.role === "church_admin" || me?.role === "super_admin") && me?.churchId === churchId;
+  if (!canAdmin) throw new Error("Only church admins can redeem codes for their church");
 
   const normalized = code.trim().toUpperCase();
   if (!normalized) throw new Error("Please enter a code");

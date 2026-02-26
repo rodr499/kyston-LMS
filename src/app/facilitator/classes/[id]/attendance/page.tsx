@@ -26,7 +26,7 @@ export default async function FacilitatorAttendancePage({
     where: eq(users.id, user.id),
     columns: { role: true },
   });
-  if (cls.facilitatorId !== user.id && me?.role !== "church_admin") notFound();
+  if (cls.facilitatorId !== user.id && me?.role !== "church_admin" && me?.role !== "super_admin") notFound();
   const records = await db.query.attendance.findMany({
     where: and(eq(attendance.classId, id), eq(attendance.churchId, tenant.churchId)),
     with: { student: { columns: { fullName: true } } },

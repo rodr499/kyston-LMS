@@ -35,6 +35,12 @@ export async function POST(request: Request) {
   if (!classRow.allowSelfEnrollment) {
     return NextResponse.json({ error: "Self-enrollment not allowed for this class" }, { status: 403 });
   }
+  if (classRow.closedForEnrollment) {
+    return NextResponse.json(
+      { error: "This class is closed for enrollment. Use the contact shown on the class page to request access." },
+      { status: 403 }
+    );
+  }
 
   const { allowed } = await checkLimit(tenant.churchId, "students");
   if (!allowed) {

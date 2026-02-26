@@ -7,8 +7,8 @@ export default async function InviteUserPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-base-content">Invite user</h1>
-        <p className="text-base-content/60 font-body mt-1">Send an invite to a facilitator or student.</p>
+        <h1 className="font-heading text-3xl font-bold text-base-content">Add or invite user</h1>
+        <p className="text-base-content/60 font-body mt-1">Add a user to your workspace or send an email invite.</p>
       </div>
       <InviteUserForm churchId={tenant.churchId} />
     </div>

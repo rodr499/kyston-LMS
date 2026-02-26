@@ -11,10 +11,11 @@ function LimitFieldWithUnlimited({
 }: {
   name: string;
   label: string;
-  defaultValue: number;
+  defaultValue?: number | null;
   defaultUnlimited: boolean;
 }) {
   const [unlimited, setUnlimited] = useState(defaultUnlimited);
+  const safeDefault = defaultValue != null && Number.isFinite(defaultValue) ? defaultValue : 0;
   return (
     <div className="form-control">
       <label className="label">
@@ -35,7 +36,7 @@ function LimitFieldWithUnlimited({
         <input
           type="number"
           name={name}
-          defaultValue={defaultValue}
+          defaultValue={safeDefault}
           className="input input-bordered rounded-lg font-body placeholder-[#9ca3af] text-[#111827]"
         />
       )}

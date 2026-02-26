@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsForm({
@@ -13,6 +13,9 @@ export default function SettingsForm({
   const [name, setName] = useState(initial.name);
   const [primaryColor, setPrimaryColor] = useState(initial.primaryColor);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { setName(initial.name); }, [initial.name]);
+  useEffect(() => { setPrimaryColor(initial.primaryColor); }, [initial.primaryColor]);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 

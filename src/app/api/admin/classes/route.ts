@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, classes, courses } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
+import { deleteClassMeeting } from "@/lib/services/meeting-service";
 
 const VALID_MODES = ["on_demand", "academic"] as const;
 const VALID_GRADING = ["completion", "pass_fail", "letter_grade"] as const;
@@ -40,9 +41,8 @@ export async function POST(request: Request) {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
   const {
     churchId,
@@ -52,10 +52,15 @@ export async function POST(request: Request) {
     gradingSystem,
     facilitatorId,
     allowSelfEnrollment,
+    noEnrollmentNeeded,
     isPublished,
+    closedForEnrollment,
+    closedContactUserId,
     meetingPlatform,
     meetingUrl,
     meetingScheduledAt,
+    meetingDurationMinutes,
+    meetingRecurrence,
   } = body as {
     churchId: string;
     courseId: string;
@@ -64,10 +69,15 @@ export async function POST(request: Request) {
     gradingSystem?: string;
     facilitatorId?: string | null;
     allowSelfEnrollment?: boolean;
+    noEnrollmentNeeded?: boolean;
     isPublished?: boolean;
+    closedForEnrollment?: boolean;
+    closedContactUserId?: string | null;
     meetingPlatform?: string;
     meetingUrl?: string | null;
     meetingScheduledAt?: string | null;
+    meetingDurationMinutes?: number | null;
+    meetingRecurrence?: { type: "weekly"; daysOfWeek: number[]; endDate: string } | null;
   };
   if (churchId !== tenant.churchId || !courseId || !name) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -101,10 +111,15 @@ export async function POST(request: Request) {
     gradingSystem: resolvedGrading,
     facilitatorId: facilitatorId ?? null,
     allowSelfEnrollment: allowSelfEnrollment ?? false,
+    noEnrollmentNeeded: noEnrollmentNeeded ?? false,
     isPublished: isPublished ?? false,
+    closedForEnrollment: closedForEnrollment ?? false,
+    closedContactUserId: closedContactUserId ?? null,
     meetingPlatform: resolvedPlatform,
     meetingUrl: urlResult.url,
     meetingScheduledAt: meetingScheduledAt ? new Date(meetingScheduledAt) : null,
+    meetingDurationMinutes: meetingDurationMinutes ?? 60,
+    meetingRecurrence: meetingRecurrence ?? null,
   }).returning({ id: classes.id });
   return NextResponse.json({ id: created?.id });
 }
@@ -119,11 +134,10 @@ export async function PATCH(request: Request) {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
-  const { classId, name, mode, gradingSystem, facilitatorId, allowSelfEnrollment, isPublished, meetingPlatform, meetingUrl, meetingScheduledAt } = body as Record<string, unknown>;
+  const { classId, name, mode, gradingSystem, facilitatorId, allowSelfEnrollment, noEnrollmentNeeded, isPublished, closedForEnrollment, closedContactUserId, meetingPlatform, meetingUrl, meetingScheduledAt, meetingDurationMinutes, meetingRecurrence } = body as Record<string, unknown>;
   if (!classId) return NextResponse.json({ error: "classId required" }, { status: 400 });
 
   // Validate meeting URL if provided
@@ -150,11 +164,43 @@ export async function PATCH(request: Request) {
     ...(resolvedGrading != null && { gradingSystem: resolvedGrading }),
     ...(facilitatorId !== undefined && { facilitatorId: facilitatorId as string | null }),
     ...(allowSelfEnrollment != null && { allowSelfEnrollment: allowSelfEnrollment as boolean }),
+    ...(noEnrollmentNeeded != null && { noEnrollmentNeeded: noEnrollmentNeeded as boolean }),
     ...(isPublished != null && { isPublished: isPublished as boolean }),
+    ...(closedForEnrollment != null && { closedForEnrollment: closedForEnrollment as boolean }),
+    ...(closedContactUserId !== undefined && { closedContactUserId: closedContactUserId as string | null }),
     ...(resolvedPlatform != null && { meetingPlatform: resolvedPlatform }),
     ...(urlResult.url !== undefined && { meetingUrl: urlResult.url }),
     ...(meetingScheduledAt !== undefined && { meetingScheduledAt: meetingScheduledAt ? new Date(meetingScheduledAt as string) : null }),
+    ...(meetingDurationMinutes != null && { meetingDurationMinutes: meetingDurationMinutes as number }),
+    ...(meetingRecurrence !== undefined && { meetingRecurrence: meetingRecurrence as { type: "weekly"; daysOfWeek: number[]; endDate: string } | null }),
     updatedAt: new Date(),
   }).where(and(eq(classes.id, classId as string), eq(classes.churchId, tenant.churchId)));
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const tenant = await getTenant();
+  if (!tenant) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const u = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true, churchId: true },
+  });
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const body = await request.json().catch(() => ({}));
+  const { classId } = body as { classId?: string };
+  if (!classId) return NextResponse.json({ error: "classId required" }, { status: 400 });
+
+  const exists = await db.query.classes.findFirst({
+    where: and(eq(classes.id, classId), eq(classes.churchId, tenant.churchId)),
+    columns: { id: true },
+  });
+  if (!exists) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+
+  await deleteClassMeeting({ classId, churchId: tenant.churchId });
+  await db.delete(classes).where(and(eq(classes.id, classId), eq(classes.churchId, tenant.churchId)));
   return NextResponse.json({ ok: true });
 }

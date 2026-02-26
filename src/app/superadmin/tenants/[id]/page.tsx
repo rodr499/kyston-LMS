@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Building2, Users, CreditCard, ExternalLink } from "lucide-react";
 import TenantPlanSection from "./TenantPlanSection";
+import TenantActions from "./TenantActions";
+import { PromoteToSuperAdminButton } from "../../users/PromoteToSuperAdminButton";
 
 export default async function TenantDetailPage({
   params,
@@ -22,15 +24,9 @@ export default async function TenantDetailPage({
     columns: { id: true, email: true, fullName: true, role: true, isActive: true },
   });
   const [programListBase, coursesList, classesList] = await Promise.all([
-    db.query.programs.findMany({
-      where: eq(programs.churchId, id),
-    }),
-    db.query.courses.findMany({
-      where: eq(courses.churchId, id),
-    }),
-    db.query.classes.findMany({
-      where: eq(classesTable.churchId, id),
-    }),
+    db.query.programs.findMany({ where: eq(programs.churchId, id) }),
+    db.query.courses.findMany({ where: eq(courses.churchId, id) }),
+    db.query.classes.findMany({ where: eq(classesTable.churchId, id) }),
   ]);
   const coursesWithClasses = coursesList.map((c) => ({
     ...c,
@@ -53,6 +49,7 @@ export default async function TenantDetailPage({
   const tenantOrigin = `https://${church.subdomain}.${appDomain}`;
 
   const roleBadge = (role: string) => {
+    if (role === "super_admin") return <span className="badge badge-accent badge-sm font-body whitespace-nowrap">Super Admin</span>;
     if (role === "church_admin") return <span className="badge badge-primary badge-sm font-body">Admin</span>;
     if (role === "facilitator") return <span className="badge badge-secondary badge-sm font-body">Facilitator</span>;
     return <span className="badge badge-ghost badge-sm font-body">Student</span>;
@@ -115,6 +112,7 @@ export default async function TenantDetailPage({
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,6 +126,13 @@ export default async function TenantDetailPage({
                         <span className="badge badge-success gap-1 font-body text-xs">Active</span>
                       ) : (
                         <span className="badge badge-ghost font-body text-xs">Inactive</span>
+                      )}
+                    </td>
+                    <td data-label="Actions">
+                      {u.role !== "super_admin" ? (
+                        <PromoteToSuperAdminButton userId={u.id} tenantId={id} />
+                      ) : (
+                        <span className="text-base-content/40 font-body text-xs">—</span>
                       )}
                     </td>
                   </tr>
@@ -157,6 +162,7 @@ export default async function TenantDetailPage({
         </div>
       </div>
       <TenantPlanSection churchId={id} />
+      <TenantActions churchId={id} churchName={church.name} isActive={church.isActive} />
       <div className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb]">
         <div className="card-body gap-2">
           <h2 className="font-heading text-lg font-semibold flex items-center gap-2">

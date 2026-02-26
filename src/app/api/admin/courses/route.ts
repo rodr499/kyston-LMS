@@ -15,9 +15,8 @@ export async function POST(request: Request) {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
   const { churchId, programId, name, description, isPublished } = body as {
     churchId: string;
@@ -49,9 +48,8 @@ export async function PATCH(request: Request) {
     where: eq(users.id, user.id),
     columns: { role: true, churchId: true },
   });
-  if (u?.role !== "church_admin" || u.churchId !== tenant.churchId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
+  if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
   const { courseId, name, description, isPublished } = body as {
     courseId: string;

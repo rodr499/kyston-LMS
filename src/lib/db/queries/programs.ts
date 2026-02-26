@@ -5,7 +5,7 @@ import {
   classes,
   users,
 } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 export async function getPublishedProgramsWithCoursesAndClasses(churchId: string) {
   // Fetch all three levels in parallel, then assemble in memory — no N+1 queries
@@ -17,15 +17,20 @@ export async function getPublishedProgramsWithCoursesAndClasses(churchId: string
     db
       .select()
       .from(courses)
-      .where(and(eq(courses.churchId, churchId), eq(courses.isPublished, true))),
+      .where(and(eq(courses.churchId, churchId), eq(courses.isPublished, true)))
+      .orderBy(asc(courses.sortOrder)),
     db
       .select({
         id: classes.id,
         courseId: classes.courseId,
         name: classes.name,
         allowSelfEnrollment: classes.allowSelfEnrollment,
+        noEnrollmentNeeded: classes.noEnrollmentNeeded,
         meetingUrl: classes.meetingUrl,
+        meetingScheduledAt: classes.meetingScheduledAt,
         isPublished: classes.isPublished,
+        closedForEnrollment: classes.closedForEnrollment,
+        closedContactUserId: classes.closedContactUserId,
         facilitatorFullName: users.fullName,
       })
       .from(classes)
@@ -35,8 +40,19 @@ export async function getPublishedProgramsWithCoursesAndClasses(churchId: string
           eq(classes.churchId, churchId),
           eq(classes.isPublished, true)
         )
-      ),
+      )
+      .orderBy(asc(classes.sortOrder)),
   ]);
+
+  // Batch-fetch all contact users in one query
+  const contactIds = [...new Set(classList.map((cl) => cl.closedContactUserId).filter(Boolean))] as string[];
+  const contactUserList = contactIds.length
+    ? await db.query.users.findMany({
+        where: (u, { inArray: iA }) => iA(u.id, contactIds),
+        columns: { id: true, fullName: true, email: true },
+      })
+    : [];
+  const contactById = new Map(contactUserList.map((u) => [u.id, { fullName: u.fullName, email: u.email }]));
 
   const programIds = new Set(programList.map((p) => p.id));
   const relevantCourses = courseList.filter((c) => programIds.has(c.programId));
@@ -65,8 +81,12 @@ export async function getPublishedProgramsWithCoursesAndClasses(churchId: string
         id: cl.id,
         name: cl.name,
         allowSelfEnrollment: cl.allowSelfEnrollment,
+        noEnrollmentNeeded: cl.noEnrollmentNeeded,
         meetingUrl: cl.meetingUrl,
+        meetingScheduledAt: cl.meetingScheduledAt,
         isPublished: cl.isPublished,
+        closedForEnrollment: cl.closedForEnrollment,
+        closedContact: cl.closedContactUserId ? contactById.get(cl.closedContactUserId) ?? null : null,
         facilitator: cl.facilitatorFullName ? { fullName: cl.facilitatorFullName } : null,
       })),
     })),

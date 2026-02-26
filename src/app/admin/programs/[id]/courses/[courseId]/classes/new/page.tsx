@@ -24,6 +24,11 @@ export default async function NewClassPage({
     where: and(eq(users.churchId, tenant.churchId), eq(users.role, "facilitator")),
     columns: { id: true, fullName: true },
   });
+  const contactUsers = await db.query.users.findMany({
+    where: and(eq(users.churchId, tenant.churchId), eq(users.isActive, true)),
+    columns: { id: true, fullName: true, email: true },
+    orderBy: (u, { asc }) => [asc(u.fullName)],
+  });
   return (
     <div>
       <div className="mb-8">
@@ -34,8 +39,8 @@ export default async function NewClassPage({
         churchId={tenant.churchId}
         programId={programId}
         courseId={courseId}
-        courseName={course.name}
         facilitators={facilitators}
+        contactUsers={contactUsers}
       />
     </div>
   );

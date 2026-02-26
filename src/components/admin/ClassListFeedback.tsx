@@ -26,13 +26,11 @@ export default function ClassListFeedback({
     <div className="mb-6">
       {meetingError ? (
         <div className="alert alert-warning rounded-xl border border-warning/30 shadow-sm">
-          <span className="font-body">
-            Class saved. {meetingError}
-          </span>
+          <span className="font-body">Class saved. {meetingError}</span>
         </div>
       ) : (
         <div className="alert alert-success rounded-xl border border-success/30 shadow-sm">
-          <span className="font-body">Class saved. Meeting link has been created.</span>
+          <span className="font-body">Class saved successfully.</span>
         </div>
       )}
     </div>

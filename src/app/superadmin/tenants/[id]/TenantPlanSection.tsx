@@ -21,42 +21,51 @@ function limitStatusColor(status: "unlimited" | "ok" | "approaching" | "at_limit
 }
 
 export default async function TenantPlanSection({ churchId }: Props) {
-  const { limits, usage } = await getTenantLimitUsageSummary(churchId);
-  const config = await db.query.churchPlanConfig.findFirst({
-    where: eq(churchPlanConfig.churchId, churchId),
-    columns: {
-      id: true,
-      planId: true,
-      isManualOverride: true,
-      overrideMaxFacilitators: true,
-      overrideMaxStudents: true,
-      overrideMaxPrograms: true,
-      overrideMaxCourses: true,
-      overrideMaxStorageMb: true,
-      adminNotes: true,
-      lastModifiedAt: true,
-    },
-  });
-  const planList = await db.query.plans.findMany({
-    where: eq(plans.isActive, true),
-    orderBy: [asc(plans.sortOrder)],
-    columns: { id: true, name: true, slug: true },
-  });
-  const redemptionRows = await db.query.couponRedemptions.findMany({
-    where: eq(couponRedemptions.churchId, churchId),
-  });
-  const redemptions = await Promise.all(
-    redemptionRows.map(async (r) => {
-      const coupon = r.couponId ? await db.query.couponCodes.findFirst({ where: eq(couponCodes.id, r.couponId), columns: { code: true } }) : null;
-      return { ...r, code: coupon?.code ?? "—" };
-    })
-  );
-  const auditEntries = await db.query.auditLogs.findMany({
-    where: eq(auditLogs.targetId, churchId),
-    orderBy: [desc(auditLogs.createdAt)],
-    limit: 20,
-    columns: { id: true, action: true, actorId: true, metadata: true, createdAt: true },
-  });
+  const [summaryResult, config, planList, redemptionRows, auditEntries] = await Promise.all([
+    getTenantLimitUsageSummary(churchId),
+    db.query.churchPlanConfig.findFirst({
+      where: eq(churchPlanConfig.churchId, churchId),
+      columns: {
+        id: true,
+        planId: true,
+        isManualOverride: true,
+        overrideMaxFacilitators: true,
+        overrideMaxStudents: true,
+        overrideMaxPrograms: true,
+        overrideMaxCourses: true,
+        overrideMaxStorageMb: true,
+        adminNotes: true,
+        lastModifiedAt: true,
+      },
+    }),
+    db.query.plans.findMany({
+      where: eq(plans.isActive, true),
+      orderBy: [asc(plans.sortOrder)],
+      columns: { id: true, name: true, slug: true },
+    }),
+    db.query.couponRedemptions.findMany({
+      where: eq(couponRedemptions.churchId, churchId),
+    }),
+    db.query.auditLogs.findMany({
+      where: eq(auditLogs.targetId, churchId),
+      orderBy: [desc(auditLogs.createdAt)],
+      limit: 20,
+      columns: { id: true, action: true, actorId: true, metadata: true, createdAt: true },
+    }),
+  ]);
+  const { limits, usage } = summaryResult;
+  const couponIds = [...new Set(redemptionRows.map((r) => r.couponId).filter(Boolean))] as string[];
+  const coupons = couponIds.length > 0
+    ? await db.query.couponCodes.findMany({
+        where: inArray(couponCodes.id, couponIds),
+        columns: { id: true, code: true },
+      })
+    : [];
+  const couponById = Object.fromEntries(coupons.map((c) => [c.id, c]));
+  const redemptions = redemptionRows.map((r) => ({
+    ...r,
+    code: (r.couponId && couponById[r.couponId]?.code) ?? "—",
+  }));
   const actorIds = [...new Set(auditEntries.map((e) => e.actorId))];
   const actors = actorIds.length > 0
     ? await db.select({ id: users.id, fullName: users.fullName }).from(users).where(inArray(users.id, actorIds))

@@ -18,24 +18,27 @@ export default async function LearnClassPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { id } = await params;
-  const enrollment = await db.query.enrollments.findFirst({
-    where: and(
-      eq(enrollments.classId, id),
-      eq(enrollments.studentId, user.id),
-      eq(enrollments.churchId, tenant.churchId),
-      eq(enrollments.status, "enrolled")
-    ),
-    columns: { id: true },
-  });
-  if (!enrollment) notFound();
   const cls = await db.query.classes.findFirst({
     where: and(eq(classes.id, id), eq(classes.churchId, tenant.churchId)),
     with: {
       course: { columns: { name: true } },
       facilitator: { columns: { fullName: true } },
+      closedContactUser: { columns: { fullName: true, email: true } },
     },
   });
   if (!cls) notFound();
+  const enrollment = cls.noEnrollmentNeeded
+    ? null
+    : await db.query.enrollments.findFirst({
+        where: and(
+          eq(enrollments.classId, id),
+          eq(enrollments.studentId, user.id),
+          eq(enrollments.churchId, tenant.churchId),
+          eq(enrollments.status, "enrolled")
+        ),
+      });
+  const closedAndNotEnrolled = !cls.noEnrollmentNeeded && !enrollment && cls.closedForEnrollment;
+  if (!cls.noEnrollmentNeeded && !enrollment && !cls.closedForEnrollment) notFound();
   const activityList = await db.query.activities.findMany({
     where: and(eq(activities.classId, id), eq(activities.churchId, tenant.churchId)),
     orderBy: [asc(activities.orderIndex)],
@@ -63,6 +66,35 @@ export default async function LearnClassPage({
   }));
   const completedCount = completionStatus.filter((s) => s.status === "completed").length;
   const progressPct = activityList.length ? Math.round((completedCount / activityList.length) * 100) : 0;
+
+  if (closedAndNotEnrolled) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="font-heading text-3xl font-bold text-base-content">{cls.name}</h1>
+          <p className="text-base-content/60 font-body mt-1">Course: {cls.course?.name}</p>
+          {cls.facilitator && (
+            <p className="font-body text-sm text-base-content/70 mt-1 flex items-center gap-1">
+              <UserCheck className="w-4 h-4" /> {cls.facilitator.fullName}
+            </p>
+          )}
+        </div>
+        <div className="card bg-base-200 rounded-2xl border border-base-300 p-6 max-w-xl">
+          <p className="font-body font-medium text-base-content mb-2">This class is closed for enrollment.</p>
+          {cls.closedContactUser ? (
+            <p className="font-body text-base-content/80">
+              To request access, contact:{" "}
+              <a href={`mailto:${cls.closedContactUser.email}`} className="link link-hover">
+                {cls.closedContactUser.fullName} ({cls.closedContactUser.email})
+              </a>
+            </p>
+          ) : (
+            <p className="font-body text-base-content/60">Contact your church for more information.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

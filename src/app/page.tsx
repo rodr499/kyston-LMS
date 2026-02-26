@@ -1,20 +1,55 @@
+import Link from "next/link";
 import { getTenant } from "@/lib/tenant";
 import { getChurchById } from "@/lib/db/queries/churches";
 import { getPublishedProgramsWithCoursesAndClasses } from "@/lib/db/queries/programs";
 import { getEnrolledClassIdsForStudent } from "@/lib/db/queries/enrollments";
 import { createClient } from "@/lib/supabase/server";
-import MarketingLanding from "@/components/marketing/MarketingLanding";
 import LearningHub from "@/components/tenant/LearningHub";
+
+function ComingSoonView() {
+  return (
+    <div className="min-h-screen flex items-center justify-center relative bg-[#f8f9fa]">
+      <div className="absolute inset-0 bg-gradient-to-br from-neutral/80 via-primary/70 to-secondary/60" aria-hidden />
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 gap-8">
+        <span className="font-heading font-bold text-white text-4xl sm:text-5xl md:text-6xl tracking-tight drop-shadow-sm">
+          KystonLMS
+        </span>
+        <div
+          className="card bg-base-100 shadow-2xl rounded-2xl border border-base-300 max-w-md w-full p-8 sm:p-10 text-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coming-soon-heading"
+        >
+          <h1
+            id="coming-soon-heading"
+            className="font-heading text-2xl sm:text-3xl font-bold text-base-content mb-2"
+          >
+            Something Great
+          </h1>
+          <p className="font-body text-base-content/80 text-lg mb-8">
+            coming soon
+          </p>
+          <Link
+            href="/login"
+            className="btn btn-primary rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const tenant = await getTenant();
   if (!tenant) {
-    return <MarketingLanding />;
+    return <ComingSoonView />;
   }
 
   const church = await getChurchById(tenant.churchId);
   if (!church) {
-    return <MarketingLanding />;
+    return <ComingSoonView />;
   }
 
   const supabase = await createClient();
