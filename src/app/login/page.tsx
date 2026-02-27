@@ -105,6 +105,7 @@ export default function LoginPage() {
 
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const authError = searchParams?.get("error");
+  const authMessage = searchParams?.get("message");
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center px-4 py-8 sm:py-12">
@@ -117,12 +118,12 @@ export default function LoginPage() {
           <div className="card-body gap-4">
             {(error || authError) && (
               <div className="alert alert-error rounded-xl gap-2">
-                <span className="font-body">{error || (authError === "auth" ? "Authentication failed." : "Error")}</span>
+                <span className="font-body">{error || (authError === "auth" ? "Authentication failed." : authError === "session" ? "Session expired. Please request a new reset link." : "Error")}</span>
               </div>
             )}
-            {message && (
+            {(message || authMessage) && (
               <div className="alert alert-success rounded-xl gap-2">
-                <span className="font-body">{message}</span>
+                <span className="font-body">{message ?? authMessage}</span>
               </div>
             )}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -142,6 +143,9 @@ export default function LoginPage() {
               <div className="form-control w-full">
                 <label className="label">
                   <span className="label-text font-body font-medium">Password</span>
+                  <Link href="/forgot-password" className="label-text-alt link link-primary">
+                    Forgot password?
+                  </Link>
                 </label>
                 <input
                   type="password"
