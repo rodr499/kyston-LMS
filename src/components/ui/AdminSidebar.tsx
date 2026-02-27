@@ -54,11 +54,13 @@ type Props = {
   variant: "admin" | "facilitator" | "learn" | "superadmin";
   user?: { fullName: string; role: string };
   churchName?: string;
+  /** Church logo URL for tenant branding (admin, facilitator, learn variants). */
+  logoUrl?: string | null;
   /** When false, Integrations nav item is greyed out (admin variant only). Default true when omitted. */
   integrationsEnabled?: boolean;
 };
 
-export default function AdminSidebar({ variant, user, churchName, integrationsEnabled = true }: Props) {
+export default function AdminSidebar({ variant, user, churchName, logoUrl, integrationsEnabled = true }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = variant === "admin" ? adminNav : variant === "facilitator" ? facilitatorNav : variant === "learn" ? learnNav : superAdminNav;
@@ -80,8 +82,14 @@ export default function AdminSidebar({ variant, user, churchName, integrationsEn
           <Menu className="w-6 h-6" />
         </button>
         <Link href={variant === "superadmin" ? "/superadmin" : variant === "admin" ? "/admin" : variant === "facilitator" ? "/facilitator" : variant === "learn" ? "/learn" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
-          <span className="font-heading text-xl font-bold text-white">Kyston</span>
-          <span className="text-secondary font-bold text-xl"> LMS</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt={churchName ?? "Logo"} className="h-8 object-contain" />
+          ) : (
+            <>
+              <span className="font-heading text-xl font-bold text-white">Kyston</span>
+              <span className="text-secondary font-bold text-xl"> LMS</span>
+            </>
+          )}
         </Link>
         <div className="w-10" />
       </header>
@@ -104,9 +112,15 @@ export default function AdminSidebar({ variant, user, churchName, integrationsEn
       >
         <div className="p-4 md:p-6 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
           <div className="flex flex-col">
-            <Link href={variant === "superadmin" ? "/superadmin" : variant === "admin" ? "/admin" : variant === "facilitator" ? "/facilitator" : variant === "learn" ? "/learn" : "/"} className="flex items-center gap-1" onClick={closeDrawer}>
-              <span className="font-heading text-2xl font-bold text-white">Kyston</span>
-              <span className="text-secondary font-bold text-2xl"> LMS</span>
+            <Link href={variant === "superadmin" ? "/superadmin" : variant === "admin" ? "/admin" : variant === "facilitator" ? "/facilitator" : variant === "learn" ? "/learn" : "/"} className="flex items-center gap-2" onClick={closeDrawer}>
+              {logoUrl ? (
+                <img src={logoUrl} alt={churchName ?? "Logo"} className="h-10 object-contain" />
+              ) : (
+                <>
+                  <span className="font-heading text-2xl font-bold text-white">Kyston</span>
+                  <span className="text-secondary font-bold text-2xl"> LMS</span>
+                </>
+              )}
             </Link>
             {churchName && (
               <p className="text-neutral-content/60 text-xs font-body mt-1 truncate">{churchName}</p>

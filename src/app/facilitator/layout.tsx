@@ -31,6 +31,7 @@ export default async function FacilitatorLayout({
         variant="facilitator"
         user={{ fullName: row.fullName ?? "User", role: row.role }}
         churchName={church?.name}
+        logoUrl={church?.logoUrl}
       />
       <main className="w-full min-h-screen pt-20 md:pt-12 md:ml-64 md:w-[calc(100%-16rem)] pb-6 px-4 sm:px-6 md:pb-8 md:px-8 min-w-0">{children}</main>
     </div>

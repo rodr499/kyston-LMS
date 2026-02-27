@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getTenant } from "@/lib/tenant";
+import { getTenantLimits } from "@/lib/tenant-config";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, churches } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function PATCH(request: Request) {
   const tenant = await getTenant();
@@ -17,13 +18,58 @@ export async function PATCH(request: Request) {
   });
   const canAdmin = (u?.role === "church_admin" || u?.role === "super_admin") && u?.churchId === tenant.churchId;
   if (!canAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await request.json();
-  const { churchId, name, primaryColor } = body as { churchId: string; name?: string; primaryColor?: string };
+  const {
+    churchId,
+    name,
+    primaryColor,
+    logoUrl,
+    secondaryColor,
+    bannerType,
+    bannerImageUrl,
+    bannerColor,
+  } = body as {
+    churchId: string;
+    name?: string;
+    primaryColor?: string;
+    logoUrl?: string | null;
+    secondaryColor?: string | null;
+    bannerType?: string | null;
+    bannerImageUrl?: string | null;
+    bannerColor?: string | null;
+  };
+
   if (churchId !== tenant.churchId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  await db.update(churches).set({
-    ...(name != null && { name }),
-    ...(primaryColor != null && { primaryColor }),
-    updatedAt: new Date(),
-  }).where(eq(churches.id, churchId));
+
+  const limits = await getTenantLimits(tenant.churchId);
+  if (!limits.customBranding) {
+    if (logoUrl !== undefined) {
+      return NextResponse.json(
+        { error: "Custom branding (logo) requires a paid plan." },
+        { status: 403 }
+      );
+    }
+    if (secondaryColor !== undefined || bannerType !== undefined || bannerImageUrl !== undefined || bannerColor !== undefined) {
+      return NextResponse.json(
+        { error: "Custom branding requires a paid plan." },
+        { status: 403 }
+      );
+    }
+  }
+
+  await db
+    .update(churches)
+    .set({
+      ...(name != null && { name }),
+      ...(primaryColor != null && { primaryColor }),
+      ...(limits.customBranding && logoUrl !== undefined && { logoUrl: logoUrl ?? null }),
+      ...(limits.customBranding && secondaryColor !== undefined && { secondaryColor: secondaryColor ?? null }),
+      ...(limits.customBranding && bannerType !== undefined && { bannerType: bannerType ?? null }),
+      ...(limits.customBranding && bannerImageUrl !== undefined && { bannerImageUrl: bannerImageUrl ?? null }),
+      ...(limits.customBranding && bannerColor !== undefined && { bannerColor: bannerColor ?? null }),
+      updatedAt: new Date(),
+    })
+    .where(eq(churches.id, churchId));
   return NextResponse.json({ ok: true });
 }

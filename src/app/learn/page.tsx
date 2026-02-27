@@ -61,13 +61,14 @@ export default async function LearnDashboard() {
     }
   }
 
-  const progressList = myEnrollments.map((e) => {
-    if (!e.class) return { enrollment: e, completed: 0, total: 0 };
-    const classActivities = activitiesByClass.get(e.class.id) ?? [];
-    const total = classActivities.length;
-    const completed = classActivities.filter((a) => completedSet.has(a.id)).length;
-    return { enrollment: e, completed, total };
-  });
+  const progressList = myEnrollments
+    .filter((e) => e.class?.id)
+    .map((e) => {
+      const classActivities = activitiesByClass.get(e.class!.id) ?? [];
+      const total = classActivities.length;
+      const completed = classActivities.filter((a) => completedSet.has(a.id)).length;
+      return { enrollment: e, completed, total };
+    });
 
   const greeting = (() => {
     const h = new Date().getHours();

@@ -15,6 +15,13 @@
       "when": 1771851198083,
       "tag": "0001_clear_sally_floyd",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772146311937,
+      "tag": "0002_add_church_branding",
+      "breakpoints": true
     }
   ]
 }

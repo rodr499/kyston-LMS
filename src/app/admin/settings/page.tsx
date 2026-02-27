@@ -1,4 +1,5 @@
 import { getTenant } from "@/lib/tenant";
+import { getTenantLimits } from "@/lib/tenant-config";
 import { getChurchById } from "@/lib/db/queries/churches";
 import { redirect } from "next/navigation";
 import SettingsForm from "@/components/admin/SettingsForm";
@@ -7,7 +8,10 @@ import DeleteMyAccount from "@/components/admin/DeleteMyAccount";
 export default async function AdminSettingsPage() {
   const tenant = await getTenant();
   if (!tenant) redirect("/");
-  const church = await getChurchById(tenant.churchId);
+  const [church, limits] = await Promise.all([
+    getChurchById(tenant.churchId),
+    getTenantLimits(tenant.churchId),
+  ]);
   if (!church) redirect("/");
   return (
     <div>
@@ -17,11 +21,16 @@ export default async function AdminSettingsPage() {
       </div>
       <SettingsForm
         churchId={church.id}
+        customBranding={limits.customBranding}
         initial={{
           name: church.name,
           primaryColor: church.primaryColor,
           subdomain: church.subdomain,
           logoUrl: church.logoUrl,
+          secondaryColor: church.secondaryColor ?? null,
+          bannerType: (church.bannerType as "gradient" | "color" | "image" | null) ?? null,
+          bannerImageUrl: church.bannerImageUrl ?? null,
+          bannerColor: church.bannerColor ?? null,
         }}
       />
       <DeleteMyAccount />

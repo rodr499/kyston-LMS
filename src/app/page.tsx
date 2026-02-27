@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTenant } from "@/lib/tenant";
+import { getTenantLimits } from "@/lib/tenant-config";
 import { getChurchById } from "@/lib/db/queries/churches";
 import { getPublishedProgramsWithCoursesAndClasses } from "@/lib/db/queries/programs";
 import { getEnrolledClassIdsForStudent } from "@/lib/db/queries/enrollments";
@@ -47,7 +48,10 @@ export default async function HomePage() {
     return <ComingSoonView />;
   }
 
-  const church = await getChurchById(tenant.churchId);
+  const [church, limits] = await Promise.all([
+    getChurchById(tenant.churchId),
+    getTenantLimits(tenant.churchId),
+  ]);
   if (!church) {
     return <ComingSoonView />;
   }
@@ -65,7 +69,12 @@ export default async function HomePage() {
         name: church.name,
         logoUrl: church.logoUrl,
         primaryColor: church.primaryColor,
+        secondaryColor: church.secondaryColor ?? null,
+        bannerType: church.bannerType ?? null,
+        bannerImageUrl: church.bannerImageUrl ?? null,
+        bannerColor: church.bannerColor ?? null,
       }}
+      customBranding={limits.customBranding}
       programs={programs as Parameters<typeof LearningHub>[0]["programs"]}
       enrolledClassIds={enrolledClassIds}
       userId={user?.id ?? null}

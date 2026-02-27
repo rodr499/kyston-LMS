@@ -28,27 +28,76 @@ type Program = {
   courses: Course[];
 };
 
+type ChurchBranding = {
+  name: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string | null;
+  bannerType: string | null;
+  bannerImageUrl: string | null;
+  bannerColor: string | null;
+};
+
 type Props = {
-  church: { name: string; logoUrl: string | null; primaryColor: string };
+  church: ChurchBranding;
+  customBranding: boolean;
   programs: Program[];
   enrolledClassIds: Set<string>;
   userId: string | null;
 };
 
-export default function LearningHub({ church, programs, enrolledClassIds, userId }: Props) {
+function getHeroStyle(church: ChurchBranding, customBranding: boolean): React.CSSProperties {
+  if (!customBranding) return {};
+  const type = church.bannerType ?? "gradient";
+  if (type === "image" && church.bannerImageUrl) {
+    return {
+      backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url(${church.bannerImageUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+  if (type === "color" && church.bannerColor) {
+    return { backgroundColor: church.bannerColor };
+  }
+  const primary = church.primaryColor ?? "#6D28D9";
+  const secondary = church.secondaryColor ?? church.bannerColor ?? "#9333ea";
+  return {
+    background: `linear-gradient(to bottom right, ${primary}20, ${secondary}10, transparent)`,
+  };
+}
+
+export default function LearningHub({ church, customBranding, programs, enrolledClassIds, userId }: Props) {
+  const showPoweredBy = !customBranding;
+
+  const brandVars = customBranding
+    ? {
+        "--color-primary": church.primaryColor ?? "#6D28D9",
+        "--color-secondary": church.secondaryColor ?? church.primaryColor ?? "#9333ea",
+      } as React.CSSProperties
+    : undefined;
+
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
+    <div className="min-h-screen bg-[#f8f9fa]" style={brandVars}>
       {/* Navbar */}
       <nav className="navbar bg-[#fafafa] shadow-sm border-b border-[#e5e7eb] sticky top-0 z-30 px-4 sm:px-6">
         <div className="container mx-auto px-0 flex w-full items-center justify-between">
-          <div>
-            {church.logoUrl ? (
-              <img src={church.logoUrl} alt={church.name} className="h-10" />
-            ) : (
+          <div className="flex items-center gap-2">
+            {church.logoUrl && (
+              <img
+                src={church.logoUrl}
+                alt={church.name}
+                className={showPoweredBy ? "h-7" : "h-10"}
+              />
+            )}
+            {showPoweredBy ? (
+              <span className="font-body text-sm text-base-content/60">
+                Powered by <span className="font-semibold text-base-content">Kyston LMS</span>
+              </span>
+            ) : !church.logoUrl ? (
               <span className="font-heading text-xl font-bold" style={{ color: church.primaryColor }}>
                 {church.name}
               </span>
-            )}
+            ) : null}
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             {userId ? (
@@ -67,7 +116,10 @@ export default function LearningHub({ church, programs, enrolledClassIds, userId
       </nav>
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent border-b border-base-300">
+      <section
+        className="border-b border-base-300 min-h-[120px] flex flex-col justify-center bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent"
+        style={getHeroStyle(church, customBranding)}
+      >
         <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <h1 className="font-heading text-3xl sm:text-4xl font-bold text-base-content mb-2">Learning Hub</h1>
           <p className="font-body text-base-content/70 max-w-xl">
@@ -203,7 +255,10 @@ export default function LearningHub({ church, programs, enrolledClassIds, userId
       </main>
 
       <footer className="footer footer-center p-8 bg-[#1a1a2e] text-[#e2e8f0] mt-12">
-        <p className="font-body text-sm text-neutral-content/70">{church.name} — Learning Hub</p>
+        <p className="font-body text-sm text-neutral-content/70">
+          {church.name} — Learning Hub
+          {showPoweredBy && " · Powered by Kyston LMS"}
+        </p>
       </footer>
     </div>
   );
