@@ -9,7 +9,7 @@ import Link from "next/link";
 type Tenant = { churchId: string; subdomain: string } | null;
 
 export default function RegisterPage() {
-  const [tenant, setTenant] = useState<Tenant>(undefined as Tenant | undefined);
+  const [tenant, setTenant] = useState<Tenant | undefined>(undefined);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const registrationFetched = useRef(false);
   const [loading, setLoading] = useState(false);
