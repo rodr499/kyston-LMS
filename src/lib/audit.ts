@@ -4,6 +4,8 @@ import { auditLogs } from "@/lib/db/schema";
 export type AuditAction =
   | "plan_assigned"
   | "manual_override_set"
+  | "custom_domain_set"
+  | "custom_domain_removed"
   | "coupon_applied"
   | "coupon_revoked"
   | "integration_approved"

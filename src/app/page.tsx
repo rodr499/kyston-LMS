@@ -30,12 +30,20 @@ function ComingSoonView() {
           <p className="font-body text-base-content/80 text-lg mb-8">
             coming soon
           </p>
-          <Link
-            href="/login"
-            className="btn btn-primary rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto"
-          >
-            Sign in
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <Link
+              href="/login"
+              className="btn btn-primary rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/go"
+              className="btn btn-ghost btn-outline rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto border-base-300"
+            >
+              Go to your church
+            </Link>
+          </div>
         </div>
       </div>
     </div>

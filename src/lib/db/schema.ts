@@ -109,6 +109,8 @@ export const churches = pgTable("churches", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   isActive: boolean("is_active").default(true).notNull(),
+  customDomain: text("custom_domain"),
+  customDomainRecordType: text("custom_domain_record_type"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
