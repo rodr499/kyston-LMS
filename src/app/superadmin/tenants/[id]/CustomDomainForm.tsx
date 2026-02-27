@@ -6,26 +6,17 @@ import { saveCustomDomainAction } from "./actions";
 type Props = {
   churchId: string;
   initialDomain: string | null;
-  initialRecordType: "CNAME" | "A" | null;
   cnameValue: string;
-  aValue: string;
 };
 
 export default function CustomDomainForm({
   churchId,
   initialDomain,
-  initialRecordType,
   cnameValue,
-  aValue,
 }: Props) {
   const [domain, setDomain] = useState(initialDomain ?? "");
-  const [recordType, setRecordType] = useState<"CNAME" | "A">(
-    (initialRecordType as "CNAME" | "A") || "CNAME"
-  );
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-
-  const recordValue = recordType === "A" ? aValue : cnameValue;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,7 +24,6 @@ export default function CustomDomainForm({
     setPending(true);
     const formData = new FormData();
     formData.set("customDomain", domain.trim());
-    formData.set("customDomainRecordType", recordType);
     const result = await saveCustomDomainAction(churchId, formData);
     setPending(false);
     if (result.error) {
@@ -60,27 +50,13 @@ export default function CustomDomainForm({
         </p>
       </div>
       {domain.trim() && (
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-body font-medium">Required DNS record type</span>
-          </label>
-          <select
-            name="customDomainRecordType"
-            className="select select-bordered rounded-lg font-body"
-            value={recordType}
-            onChange={(e) => setRecordType(e.target.value as "CNAME" | "A")}
-          >
-            <option value="CNAME">CNAME</option>
-            <option value="A">A</option>
-          </select>
-          <div className="alert alert-info rounded-xl mt-2">
-            <p className="font-body text-sm">
-              Tenant must add this DNS record at their registrar:
-            </p>
-            <p className="font-mono text-sm mt-1">
-              <strong>{recordType}</strong> → <strong>{recordValue}</strong>
-            </p>
-          </div>
+        <div className="alert alert-info rounded-xl">
+          <p className="font-body text-sm">
+            Tenant must add this CNAME record at their registrar:
+          </p>
+          <p className="font-mono text-sm mt-1">
+            <strong>CNAME</strong> → <strong>{cnameValue}</strong>
+          </p>
         </div>
       )}
       {error && <p className="text-error text-sm font-body">{error}</p>}

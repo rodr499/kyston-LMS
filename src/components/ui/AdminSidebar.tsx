@@ -58,9 +58,15 @@ type Props = {
   logoUrl?: string | null;
   /** When false, Integrations nav item is greyed out (admin variant only). Default true when omitted. */
   integrationsEnabled?: boolean;
+  /** Church primary color for sidebar background when custom branding is enabled. */
+  primaryColor?: string | null;
+  /** Church secondary color for sidebar link hover highlight. */
+  secondaryColor?: string | null;
+  /** Admin-selectable color for sidebar link text on hover. */
+  linkColor?: string | null;
 };
 
-export default function AdminSidebar({ variant, user, churchName, logoUrl, integrationsEnabled = true }: Props) {
+export default function AdminSidebar({ variant, user, churchName, logoUrl, integrationsEnabled = true, primaryColor, secondaryColor, linkColor }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = variant === "admin" ? adminNav : variant === "facilitator" ? facilitatorNav : variant === "learn" ? learnNav : superAdminNav;
@@ -69,10 +75,21 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
 
   const isIntegrationsDisabled = variant === "admin" && !integrationsEnabled;
 
+  const effectiveLinkColor = linkColor ?? secondaryColor ?? "#a78bfa";
+  const hoverBgColor = secondaryColor ? `${secondaryColor}26` : "rgba(255,255,255,0.1)";
+  const sidebarStyle = {
+    backgroundColor: primaryColor ?? "#1a1a2e",
+    "--sidebar-hover-bg": hoverBgColor,
+    "--sidebar-link-color": effectiveLinkColor,
+  } as React.CSSProperties;
+
   return (
     <>
       {/* Mobile header bar with hamburger - visible only on mobile */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#1a1a2e] flex items-center justify-between px-4 z-40 border-b border-white/10">
+      <header
+        className="md:hidden fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-40 border-b border-white/10"
+        style={{ backgroundColor: primaryColor ?? "#1a1a2e" }}
+      >
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -105,10 +122,11 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
 
       {/* Sidebar - drawer on mobile, fixed on desktop */}
       <aside
-        className={`w-64 min-h-screen bg-[#1a1a2e] flex flex-col fixed left-0 top-0 z-50 transition-transform duration-200 ease-out
+        className={`w-64 min-h-screen flex flex-col fixed left-0 top-0 z-50 transition-transform duration-200 ease-out
           -translate-x-full md:translate-x-0
           ${mobileOpen ? "translate-x-0" : ""}
         `}
+        style={sidebarStyle}
       >
         <div className="p-4 md:p-6 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
           <div className="flex flex-col">
@@ -142,7 +160,7 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
             const disabled = isIntegrationsItem && isIntegrationsDisabled;
             const isActive = !disabled && (pathname === item.href || (item.href !== "/admin" && item.href !== "/facilitator" && item.href !== "/learn" && item.href !== "/superadmin" && pathname.startsWith(item.href)));
             const baseClass = `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group min-h-[44px]`;
-            const activeClass = isActive ? "bg-primary/20 text-white border-l-4 border-secondary" : "text-neutral-content/70 hover:bg-white/10 hover:text-white";
+            const activeClass = isActive ? "bg-primary/20 border-l-4 border-secondary [color:var(--sidebar-link-color)]" : "text-neutral-content/70 hover:bg-[var(--sidebar-hover-bg)] [&:hover]:text-[var(--sidebar-link-color)]";
             const disabledClass = "opacity-50 cursor-not-allowed text-neutral-content/50 pointer-events-none";
             const className = `${baseClass} ${disabled ? disabledClass : activeClass}`;
             if (disabled) {
@@ -165,7 +183,7 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
                 onClick={closeDrawer}
                 className={className}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-secondary" : "group-hover:text-secondary transition-colors"}`} />
+                <Icon className="w-5 h-5 shrink-0 transition-colors [color:inherit]" />
                 <span className="font-body text-sm font-medium">{item.label}</span>
               </Link>
             );
@@ -175,7 +193,7 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
           <div className="p-4 border-t border-white/10">
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl min-h-[44px]">
               <div className="avatar placeholder">
-                <div className="w-8 rounded-full bg-primary text-primary-content text-xs font-body">
+                <div className="w-8 rounded-full bg-secondary text-secondary-content text-xs font-body flex items-center justify-center">
                   {user.fullName.slice(0, 2).toUpperCase()}
                 </div>
               </div>
@@ -187,9 +205,9 @@ export default function AdminSidebar({ variant, user, churchName, logoUrl, integ
             <Link
               href="/login"
               onClick={closeDrawer}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-neutral-content/70 hover:bg-white/10 hover:text-white transition-all mt-1 min-h-[44px]"
+              className="group flex items-center gap-3 px-4 py-3 rounded-xl text-neutral-content/70 hover:bg-[var(--sidebar-hover-bg)] [&:hover]:text-[var(--sidebar-link-color)] transition-all mt-1 min-h-[44px]"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 [color:inherit]" />
               <span className="font-body text-sm">Sign out</span>
             </Link>
           </div>

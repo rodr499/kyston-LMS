@@ -138,7 +138,7 @@ export async function saveCustomDomainAction(
   if (me?.role !== "super_admin") throw new Error("Unauthorized");
 
   const customDomain = String(formData.get("customDomain") ?? "").trim().toLowerCase() || null;
-  const recordType = (formData.get("customDomainRecordType") as "CNAME" | "A") || "CNAME";
+  const recordType = "CNAME" as const;
 
   const church = await db.query.churches.findFirst({
     where: eq(churches.id, churchId),

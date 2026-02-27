@@ -31,6 +31,10 @@ export default async function AdminSettingsPage() {
           bannerType: (church.bannerType as "gradient" | "color" | "image" | null) ?? null,
           bannerImageUrl: church.bannerImageUrl ?? null,
           bannerColor: church.bannerColor ?? null,
+          websiteUrl: church.websiteUrl ?? null,
+          facebookUrl: church.facebookUrl ?? null,
+          instagramUrl: church.instagramUrl ?? null,
+          linkColor: church.linkColor ?? null,
         }}
       />
       <DeleteMyAccount />

@@ -119,9 +119,7 @@ export default async function TenantDetailPage({
           <CustomDomainForm
             churchId={id}
             initialDomain={church.customDomain}
-            initialRecordType={church.customDomainRecordType as "CNAME" | "A" | null}
-            cnameValue={process.env.VERCEL_CNAME ?? "cname.vercel-dns.com"}
-            aValue={process.env.VERCEL_IP ?? "216.198.79.1"}
+            cnameValue={process.env.VERCEL_CNAME ?? "a39bc0afdae1b833.vercel-dns-017.com"}
           />
         </div>
       </div>

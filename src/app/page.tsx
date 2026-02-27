@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { SHOW_GO_TO_CHURCH } from "@/lib/feature-flags";
 import { getTenant } from "@/lib/tenant";
 import { getTenantLimits } from "@/lib/tenant-config";
 import { getChurchById } from "@/lib/db/queries/churches";
@@ -6,6 +8,14 @@ import { getPublishedProgramsWithCoursesAndClasses } from "@/lib/db/queries/prog
 import { getEnrolledClassIdsForStudent } from "@/lib/db/queries/enrollments";
 import { createClient } from "@/lib/supabase/server";
 import LearningHub from "@/components/tenant/LearningHub";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await getTenant();
+  if (!tenant) return {};
+  const church = await getChurchById(tenant.churchId);
+  if (!church) return {};
+  return { title: `${church.name} - Learning Hub` };
+}
 
 function ComingSoonView() {
   return (
@@ -37,12 +47,14 @@ function ComingSoonView() {
             >
               Sign in
             </Link>
-            <Link
-              href="/go"
-              className="btn btn-ghost btn-outline rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto border-base-300"
-            >
-              Go to your church
-            </Link>
+            {SHOW_GO_TO_CHURCH && (
+              <Link
+                href="/go"
+                className="btn btn-ghost btn-outline rounded-xl font-body font-semibold min-h-12 px-8 w-full sm:w-auto border-base-300"
+              >
+                Go to your church
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -81,6 +93,9 @@ export default async function HomePage() {
         bannerType: church.bannerType ?? null,
         bannerImageUrl: church.bannerImageUrl ?? null,
         bannerColor: church.bannerColor ?? null,
+        websiteUrl: church.websiteUrl ?? null,
+        facebookUrl: church.facebookUrl ?? null,
+        instagramUrl: church.instagramUrl ?? null,
       }}
       customBranding={limits.customBranding}
       programs={programs as Parameters<typeof LearningHub>[0]["programs"]}

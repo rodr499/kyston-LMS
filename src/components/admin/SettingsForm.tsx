@@ -22,6 +22,10 @@ export default function SettingsForm({
     bannerType: BannerType;
     bannerImageUrl: string | null;
     bannerColor: string | null;
+    websiteUrl: string | null;
+    facebookUrl: string | null;
+    instagramUrl: string | null;
+    linkColor: string | null;
   };
 }) {
   const [name, setName] = useState(initial.name);
@@ -31,6 +35,10 @@ export default function SettingsForm({
   const [bannerType, setBannerType] = useState<BannerType>(initial.bannerType ?? "gradient");
   const [bannerImageUrl, setBannerImageUrl] = useState<string | null>(initial.bannerImageUrl);
   const [bannerColor, setBannerColor] = useState(initial.bannerColor ?? "#9333ea");
+  const [websiteUrl, setWebsiteUrl] = useState(initial.websiteUrl ?? "");
+  const [facebookUrl, setFacebookUrl] = useState(initial.facebookUrl ?? "");
+  const [instagramUrl, setInstagramUrl] = useState(initial.instagramUrl ?? "");
+  const [linkColor, setLinkColor] = useState(initial.linkColor ?? "");
   const [logoUploading, setLogoUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,6 +54,10 @@ export default function SettingsForm({
   useEffect(() => { setBannerType(initial.bannerType ?? "gradient"); }, [initial.bannerType]);
   useEffect(() => { setBannerImageUrl(initial.bannerImageUrl); }, [initial.bannerImageUrl]);
   useEffect(() => { setBannerColor(initial.bannerColor ?? "#9333ea"); }, [initial.bannerColor]);
+  useEffect(() => { setWebsiteUrl(initial.websiteUrl ?? ""); }, [initial.websiteUrl]);
+  useEffect(() => { setFacebookUrl(initial.facebookUrl ?? ""); }, [initial.facebookUrl]);
+  useEffect(() => { setInstagramUrl(initial.instagramUrl ?? ""); }, [initial.instagramUrl]);
+  useEffect(() => { setLinkColor(initial.linkColor ?? ""); }, [initial.linkColor]);
 
   // Ensure storage bucket is public (fixes broken images)
   useEffect(() => {
@@ -96,9 +108,13 @@ export default function SettingsForm({
           churchId,
           name,
           primaryColor,
+          websiteUrl: websiteUrl || null,
+          facebookUrl: facebookUrl || null,
+          instagramUrl: instagramUrl || null,
           ...(customBranding && {
             logoUrl,
             secondaryColor: secondaryColor || null,
+            linkColor: linkColor || null,
             bannerType,
             bannerImageUrl: bannerType === "image" ? bannerImageUrl : null,
             bannerColor: bannerType !== "image" ? bannerColor : null,
@@ -152,6 +168,49 @@ export default function SettingsForm({
             </div>
           </div>
           <p className="font-body text-sm text-base-content/50">Subdomain: {initial.subdomain} (read-only)</p>
+        </div>
+      </div>
+
+      <div className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb]">
+        <div className="card-body gap-6">
+          <h2 className="font-heading text-xl font-bold">Social links</h2>
+          <p className="font-body text-sm text-base-content/70">Optional links shown on your Learning Hub footer.</p>
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text font-body font-medium text-base-content">Website</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://yoursite.org"
+              className="input input-bordered rounded-lg w-full font-body placeholder-[#9ca3af] text-[#111827] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+            />
+          </div>
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text font-body font-medium text-base-content">Facebook</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://facebook.com/yourpage"
+              className="input input-bordered rounded-lg w-full font-body placeholder-[#9ca3af] text-[#111827] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              value={facebookUrl}
+              onChange={(e) => setFacebookUrl(e.target.value)}
+            />
+          </div>
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text font-body font-medium text-base-content">Instagram</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://instagram.com/yourpage"
+              className="input input-bordered rounded-lg w-full font-body placeholder-[#9ca3af] text-[#111827] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              value={instagramUrl}
+              onChange={(e) => setInstagramUrl(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -224,6 +283,28 @@ export default function SettingsForm({
                     className="input input-bordered input-sm w-28 rounded-lg font-body"
                     value={secondaryColor}
                     onChange={(e) => setSecondaryColor(e.target.value)}
+                    placeholder="#9333ea"
+                  />
+                </div>
+              </div>
+
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-body font-medium text-base-content">Sidebar link color</span>
+                </label>
+                <p className="font-body text-xs text-base-content/60 mb-2">Color of sidebar nav links on hover.</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    className="h-10 w-14 rounded-lg cursor-pointer border border-[#e5e7eb] transition-all duration-200"
+                    value={linkColor || "#9333ea"}
+                    onChange={(e) => setLinkColor(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm w-28 rounded-lg font-body"
+                    value={linkColor}
+                    onChange={(e) => setLinkColor(e.target.value)}
                     placeholder="#9333ea"
                   />
                 </div>

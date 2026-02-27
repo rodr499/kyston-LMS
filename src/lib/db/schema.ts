@@ -111,6 +111,10 @@ export const churches = pgTable("churches", {
   isActive: boolean("is_active").default(true).notNull(),
   customDomain: text("custom_domain"),
   customDomainRecordType: text("custom_domain_record_type"),
+  websiteUrl: text("website_url"),
+  facebookUrl: text("facebook_url"),
+  instagramUrl: text("instagram_url"),
+  linkColor: text("link_color"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
