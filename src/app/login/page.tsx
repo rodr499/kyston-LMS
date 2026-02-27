@@ -174,6 +174,8 @@ export default function LoginPage() {
           </div>
         </div>
         <p className="text-center mt-6 font-body">
+          <Link href="/go" className="link link-primary text-sm">Go to your church</Link>
+          {" · "}
           <Link href="/" className="link link-primary text-sm">Back to home</Link>
         </p>
       </div>

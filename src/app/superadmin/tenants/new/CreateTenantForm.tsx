@@ -21,7 +21,11 @@ export default function CreateTenantForm() {
       return;
     }
     if (result.churchId) {
-      router.push(`/superadmin/tenants/${result.churchId}`);
+      if (result.subdomainWarning) {
+        router.push(`/superadmin/tenants/${result.churchId}?subdomainWarning=1`);
+      } else {
+        router.push(`/superadmin/tenants/${result.churchId}`);
+      }
       router.refresh();
     }
   }
@@ -36,7 +40,7 @@ export default function CreateTenantForm() {
         <div className="form-control">
           <label className="label"><span className="label-text font-body font-medium">Subdomain</span></label>
           <input type="text" name="subdomain" placeholder="gracechurch" className="input input-bordered rounded-lg font-body" required />
-          <p className="text-xs text-base-content/50 mt-1">Letters, numbers, and hyphens only. Will be used as {typeof window !== "undefined" ? window.location.hostname?.replace(/^[^.]+\./, "") ?? "subdomain.domain" : "subdomain.domain"}.</p>
+          <p className="text-xs text-base-content/50 mt-1">Letters, numbers, and hyphens only. Will be used as {typeof window !== "undefined" ? window.location.hostname?.replace(/^[^.]+\./, "") ?? "subdomain.domain" : "subdomain.domain"}. Subdomain is created automatically in Dynu and Vercel when configured.</p>
         </div>
         <div className="form-control">
           <label className="label"><span className="label-text font-body font-medium">Admin email</span></label>

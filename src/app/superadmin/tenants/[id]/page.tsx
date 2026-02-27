@@ -6,14 +6,18 @@ import Link from "next/link";
 import { Building2, Users, CreditCard, ExternalLink } from "lucide-react";
 import TenantPlanSection from "./TenantPlanSection";
 import TenantActions from "./TenantActions";
+import CustomDomainForm from "./CustomDomainForm";
 import { PromoteToSuperAdminButton } from "../../users/PromoteToSuperAdminButton";
 
 export default async function TenantDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ subdomainWarning?: string }>;
 }) {
   const { id } = await params;
+  const { subdomainWarning } = await searchParams;
   const church = await db.query.churches.findFirst({
     where: eq(churches.id, id),
   });
@@ -57,6 +61,13 @@ export default async function TenantDetailPage({
 
   return (
     <div className="space-y-8">
+      {subdomainWarning && (
+        <div className="alert alert-warning rounded-xl gap-2">
+          <span className="font-body">
+            Subdomain setup failed. Add <strong>{church.subdomain}.{appDomain}</strong> manually in Vercel → Project → Settings → Domains. See docs/SUBDOMAINS.md.
+          </span>
+        </div>
+      )}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="font-heading text-3xl font-bold text-base-content">{church.name}</h1>
@@ -97,6 +108,21 @@ export default async function TenantDetailPage({
           {church.logoUrl && (
             <img src={church.logoUrl} alt="Logo" className="w-24 h-24 object-contain rounded-xl" />
           )}
+        </div>
+      </div>
+      <div className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb]">
+        <div className="card-body">
+          <h2 className="font-heading text-lg font-semibold">Custom domain</h2>
+          <p className="font-body text-sm text-base-content/70 mb-4">
+            Allow this tenant to use their own domain (e.g. ruta.acmk.us). Set the domain and record type; the tenant adds the DNS record at their registrar.
+          </p>
+          <CustomDomainForm
+            churchId={id}
+            initialDomain={church.customDomain}
+            initialRecordType={church.customDomainRecordType as "CNAME" | "A" | null}
+            cnameValue="cname.vercel-dns.com"
+            aValue={process.env.VERCEL_IP ?? "216.198.79.1"}
+          />
         </div>
       </div>
       <div className="card bg-white shadow-sm rounded-2xl border border-[#e5e7eb] overflow-hidden">

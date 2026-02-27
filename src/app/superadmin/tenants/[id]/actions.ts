@@ -1,12 +1,14 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { churchPlanConfig } from "@/lib/db/schema";
+import { churches, churchPlanConfig } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { users } from "@/lib/db/schema";
 import { logAudit } from "@/lib/audit";
+import { addVercelDomain, removeVercelDomain } from "@/lib/subdomain/vercel";
 import { revalidatePath } from "next/cache";
+
 
 export async function applyPlan(churchId: string, formData: FormData) {
   const supabase = await createClient();
@@ -120,4 +122,68 @@ export async function saveManualOverride(churchId: string, formData: FormData) {
   });
 
   revalidatePath(`/superadmin/tenants/${churchId}`);
+}
+
+export async function saveCustomDomainAction(
+  churchId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const me = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true },
+  });
+  if (me?.role !== "super_admin") throw new Error("Unauthorized");
+
+  const customDomain = String(formData.get("customDomain") ?? "").trim().toLowerCase() || null;
+  const recordType = (formData.get("customDomainRecordType") as "CNAME" | "A") || "CNAME";
+
+  const church = await db.query.churches.findFirst({
+    where: eq(churches.id, churchId),
+    columns: { customDomain: true, subdomain: true },
+  });
+  if (!church) return { error: "Church not found" };
+
+  const projectId = process.env.VERCEL_PROJECT_ID ?? process.env.VERCEL_PROJECT_NAME;
+  const teamId = process.env.VERCEL_TEAM_ID;
+  const hasVercel = !!(process.env.VERCEL_TOKEN && projectId);
+
+  if (church.customDomain && church.customDomain !== customDomain && hasVercel) {
+    await removeVercelDomain({
+      projectIdOrName: projectId!,
+      domain: church.customDomain,
+      teamId: teamId || undefined,
+    });
+  }
+
+  if (customDomain && hasVercel) {
+    const result = await addVercelDomain({
+      projectIdOrName: projectId!,
+      domain: customDomain,
+      teamId: teamId || undefined,
+    });
+    if (!result.ok) return { error: result.error };
+  }
+
+  await db
+    .update(churches)
+    .set({
+      customDomain,
+      customDomainRecordType: customDomain ? recordType : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(churches.id, churchId));
+
+  await logAudit({
+    actorId: user.id,
+    action: customDomain ? "custom_domain_set" : "custom_domain_removed",
+    targetType: "church",
+    targetId: churchId,
+    metadata: { customDomain, recordType },
+  });
+
+  revalidatePath(`/superadmin/tenants/${churchId}`);
+  return {};
 }

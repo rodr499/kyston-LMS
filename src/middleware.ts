@@ -23,12 +23,42 @@ function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+function isAppDomain(hostname: string): boolean {
+  return (
+    hostname === APP_DOMAIN ||
+    hostname.endsWith("." + APP_DOMAIN) ||
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.includes(".localhost:")
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host")?.split(":")[0] ?? "";
   const subdomain = getSubdomain(hostname);
   const pathname = request.nextUrl.pathname;
 
   const requestHeaders = new Headers(request.headers);
+
+  // Custom domain (e.g. ruta.acmk.us): resolve by hostname when not on our app domain
+  if (!isAppDomain(hostname)) {
+    const church = await getChurchByCustomDomain(hostname);
+    if (church) {
+      requestHeaders.set("x-church-id", church.id);
+      requestHeaders.set("x-church-subdomain", church.subdomain);
+      const requestWithTenant = new NextRequest(request.url, {
+        headers: requestHeaders,
+        method: request.method,
+      });
+      const { response, user } = await runSupabaseAuth(requestWithTenant, requestHeaders);
+      if (response.status === 307 || response.status === 302) return response;
+      if (isProtectedPath(pathname) && !user) {
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+      return response;
+    }
+    return NextResponse.redirect(new URL("https://" + APP_DOMAIN));
+  }
 
   // No subdomain or www → root domain; only home, login, register, app routes, API, and auth are allowed (external/marketing pages redirect to home)
   if (!subdomain) {
@@ -38,6 +68,7 @@ export async function middleware(request: NextRequest) {
       pathname === "/register" ||
       pathname === "/forgot-password" ||
       pathname === "/reset-password" ||
+      pathname === "/go" ||
       pathname.startsWith("/api/") ||
       pathname.startsWith("/auth/") ||
       pathname.startsWith("/admin") ||
@@ -91,6 +122,25 @@ async function getChurchBySubdomain(subdomain: string): Promise<{ id: string; su
   if (!supabaseUrl || !supabaseAnonKey) return null;
   const res = await fetch(
     `${supabaseUrl}/rest/v1/churches?subdomain=eq.${encodeURIComponent(subdomain)}&is_active=eq.true&select=id,subdomain`,
+    {
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  return Array.isArray(data) && data.length > 0 ? data[0] : null;
+}
+
+async function getChurchByCustomDomain(hostname: string): Promise<{ id: string; subdomain: string } | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/churches?custom_domain=eq.${encodeURIComponent(hostname)}&is_active=eq.true&select=id,subdomain`,
     {
       headers: {
         apikey: supabaseAnonKey,

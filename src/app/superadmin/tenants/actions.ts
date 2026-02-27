@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { churches, users } from "@/lib/db/schema";
+import { provisionSubdomain, deprovisionSubdomain } from "@/lib/subdomain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { eq } from "drizzle-orm";
@@ -19,7 +20,7 @@ async function requireSuperAdmin() {
   return user.id;
 }
 
-export async function createTenantAction(formData: FormData): Promise<{ error?: string; churchId?: string }> {
+export async function createTenantAction(formData: FormData): Promise<{ error?: string; churchId?: string; subdomainWarning?: string }> {
   await requireSuperAdmin();
 
   const churchName = String(formData.get("churchName") ?? "").trim();
@@ -75,9 +76,17 @@ export async function createTenantAction(formData: FormData): Promise<{ error?: 
     role: "church_admin",
   });
 
+  const apexDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "kyston.org";
+  const fullDomain = `${subdomain}.${apexDomain}`;
+
+  const provisionResult = await provisionSubdomain(subdomain);
+  const subdomainWarning = !provisionResult.ok
+    ? `Tenant created. Subdomain setup failed: ${provisionResult.error}. Add ${fullDomain} manually in Vercel Domains.`
+    : undefined;
+
   revalidatePath("/superadmin/tenants");
   revalidatePath("/superadmin");
-  return { churchId: church.id };
+  return { churchId: church.id, subdomainWarning };
 }
 
 export async function setTenantActiveAction(churchId: string, isActive: boolean): Promise<{ error?: string }> {
@@ -91,6 +100,11 @@ export async function setTenantActiveAction(churchId: string, isActive: boolean)
 export async function deleteTenantAction(churchId: string): Promise<{ error?: string }> {
   await requireSuperAdmin();
 
+  const church = await db.query.churches.findFirst({
+    where: eq(churches.id, churchId),
+    columns: { subdomain: true, customDomain: true },
+  });
+
   const churchUsers = await db.query.users.findMany({
     where: eq(users.churchId, churchId),
     columns: { id: true },
@@ -102,6 +116,22 @@ export async function deleteTenantAction(churchId: string): Promise<{ error?: st
       await admin.auth.admin.deleteUser(u.id);
     } catch {
       // continue; user may already be deleted
+    }
+  }
+
+  if (church?.subdomain) {
+    await deprovisionSubdomain(church.subdomain);
+  }
+  if (church?.customDomain) {
+    const { removeVercelDomain } = await import("@/lib/subdomain/vercel");
+    const projectId = process.env.VERCEL_PROJECT_ID ?? process.env.VERCEL_PROJECT_NAME;
+    const teamId = process.env.VERCEL_TEAM_ID;
+    if (process.env.VERCEL_TOKEN && projectId) {
+      await removeVercelDomain({
+        projectIdOrName: projectId,
+        domain: church.customDomain,
+        teamId: teamId || undefined,
+      });
     }
   }
 
