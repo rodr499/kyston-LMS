@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SHOW_GO_TO_CHURCH } from "@/lib/feature-flags";
+import PoweredByKyston from "@/components/tenant/PoweredByKyston";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -174,10 +176,15 @@ export default function LoginPage() {
           </div>
         </div>
         <p className="text-center mt-6 font-body">
-          <Link href="/go" className="link link-primary text-sm">Go to your church</Link>
-          {" · "}
+          {SHOW_GO_TO_CHURCH && (
+            <>
+              <Link href="/go" className="link link-primary text-sm">Go to your church</Link>
+              {" · "}
+            </>
+          )}
           <Link href="/" className="link link-primary text-sm">Back to home</Link>
         </p>
+        <PoweredByKyston />
       </div>
     </div>
   );

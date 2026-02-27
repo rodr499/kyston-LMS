@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PoweredByKyston from "@/components/tenant/PoweredByKyston";
 
 type Tenant = { churchId: string; subdomain: string } | null;
 
@@ -124,12 +125,13 @@ export default function RegisterPage() {
 
   if (tenant === null && registrationEnabled === false) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center px-4 py-8 sm:py-12">
+      <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-md text-center">
           <h1 className="font-heading text-3xl font-bold text-base-content">Registration disabled</h1>
           <p className="font-body text-base-content/70 mt-2">New church registration is currently disabled by the platform administrator.</p>
           <Link href="/" className="btn btn-primary rounded-xl font-body mt-6 inline-block">Back to home</Link>
         </div>
+        <PoweredByKyston />
       </div>
     );
   }
@@ -291,6 +293,7 @@ export default function RegisterPage() {
         <p className="text-center mt-6 font-body">
           <Link href="/" className="link link-primary text-sm">Back to home</Link>
         </p>
+        <PoweredByKyston />
       </div>
     </div>
   );

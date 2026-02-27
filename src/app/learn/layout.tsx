@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getTenantLimits } from "@/lib/tenant-config";
@@ -7,6 +8,14 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getChurchBySubdomain } from "@/lib/db/queries/churches";
 import AdminSidebar from "@/components/ui/AdminSidebar";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await getTenant();
+  if (!tenant) return {};
+  const church = await getChurchBySubdomain(tenant.subdomain);
+  if (!church) return {};
+  return { title: { default: `${church.name} - My classes`, template: `%s | ${church.name}` } };
+}
 
 export default async function LearnLayout({
   children,
@@ -40,6 +49,9 @@ export default async function LearnLayout({
         user={{ fullName: row?.fullName ?? "Student", role: row?.role ?? "student" }}
         churchName={church?.name}
         logoUrl={church?.logoUrl}
+        primaryColor={limits.customBranding ? church?.primaryColor : undefined}
+        secondaryColor={limits.customBranding ? (church?.secondaryColor ?? church?.primaryColor) : undefined}
+        linkColor={limits.customBranding ? church?.linkColor : undefined}
       />
       <main className="w-full min-h-screen pt-20 md:pt-12 md:ml-64 md:w-[calc(100%-16rem)] pb-6 px-4 sm:px-6 md:pb-8 md:px-8 min-w-0">{children}</main>
     </div>

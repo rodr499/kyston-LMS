@@ -1,7 +1,7 @@
 import Link from "next/link";
 import EnrollButton from "./EnrollButton";
 import ShareButton from "./ShareButton";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Globe, Facebook, Instagram } from "lucide-react";
 
 type Class = {
   id: string;
@@ -36,6 +36,9 @@ type ChurchBranding = {
   bannerType: string | null;
   bannerImageUrl: string | null;
   bannerColor: string | null;
+  websiteUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
 };
 
 type Props = {
@@ -256,9 +259,48 @@ export default function LearningHub({ church, customBranding, programs, enrolled
 
       <footer className="footer footer-center p-8 bg-[#1a1a2e] text-[#e2e8f0] mt-12">
         <p className="font-body text-sm text-neutral-content/70">
-          {church.name} — Learning Hub
-          {showPoweredBy && " · Powered by Kyston LMS"}
+          {church.name} — Learning Hub · Powered by KystonLMS
         </p>
+        {(church.websiteUrl || church.facebookUrl || church.instagramUrl) && (
+          <div className="flex items-center justify-center gap-4 mt-4">
+            {church.websiteUrl && (
+              <a
+                href={church.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-neutral-content/70 hover:text-white transition-colors font-body text-sm"
+                aria-label="Website"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Website</span>
+              </a>
+            )}
+            {church.facebookUrl && (
+              <a
+                href={church.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-neutral-content/70 hover:text-white transition-colors font-body text-sm"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+                <span>Facebook</span>
+              </a>
+            )}
+            {church.instagramUrl && (
+              <a
+                href={church.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-neutral-content/70 hover:text-white transition-colors font-body text-sm"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+                <span>Instagram</span>
+              </a>
+            )}
+          </div>
+        )}
       </footer>
     </div>
   );

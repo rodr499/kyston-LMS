@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import PoweredByKyston from "@/components/tenant/PoweredByKyston";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -56,6 +57,7 @@ export default function ForgotPasswordPage() {
           <p className="text-center mt-6 font-body">
             <Link href="/" className="link link-primary text-sm">Back to home</Link>
           </p>
+          <PoweredByKyston />
         </div>
       </div>
     );
@@ -105,6 +107,7 @@ export default function ForgotPasswordPage() {
         <p className="text-center mt-6 font-body">
           <Link href="/" className="link link-primary text-sm">Back to home</Link>
         </p>
+        <PoweredByKyston />
       </div>
     </div>
   );

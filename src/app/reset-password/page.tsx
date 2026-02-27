@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PoweredByKyston from "@/components/tenant/PoweredByKyston";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -121,6 +122,7 @@ export default function ResetPasswordPage() {
         <p className="text-center mt-6 font-body">
           <Link href="/" className="link link-primary text-sm">Back to home</Link>
         </p>
+        <PoweredByKyston />
       </div>
     </div>
   );
